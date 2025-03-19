@@ -1,0 +1,63 @@
+Changes made in CCWatM in comparison to the original version
+ 
+In settingsfile.ini
+1.	Included option similar to calc_evaporation called no_meteo in settings file at line 29
+2.	Implement paths to runoff, ET, and sum_gwrecharge in new section called [NO_METEO] check units!!! Line 205
+
+In run_cwatm.py
+1.	Change ‘PrecipitationMaps’ to ‘RunoffMaps’ in line 130 and 192
+
+In cwatm_dynamic.py
+1.	Turn off snow_frost.py. Line 74
+2.	Turn off cappilarrise.py. Line 80
+3.	Turn off landcoverType.py. Line 84
+4.	Turn off runoff_concentration.py Line 95
+5.	(if includewaterbodies = True) Remove everything related to self.var.totalET_WB in line 118ff.
+6.	(if includeWaterDemand = True) Insert self.waterdemand_module.dynamic() instead of self.landcoverType_module.dynamic() (landcoverType.py called the water demand module before)
+7.	Remove lines 110-141 to not compute tws
+8.	Turn off waterquality.py. line 104
+
+In cwatm_initial.py
+1.	Remove initialization of evaporationPot (line 109, 149), snowfrost (line 111, 151), evaporation (114), capillarRise (119), interception (120), sealed_water (121), runoff_concentration (122, 162), water balance (126, 172), and water quality (127, 177)
+2. Remove Modflow flag
+
+In data_handling.py
+1.	In def metaNetCDF(): change ‘PrecipitationMaps’ to ‘RunoffMaps’ in line 481 to 495
+
+In timestep.py
+1.	Change ‘PrecipitationMaps’ to ‘RunoffMaps’ in error message at line 289 and 290.
+
+In readmeteo.py
+1.	Included option similar to calc_evaporation called no_meteo in settings file at line 29 and implement that in readmeteo at line 193
+2.	Change first part of initial after  #fit meteorological forcing data to size and resolution of mask map in lines 97-101 to read in runoff maps
+3.	Implement maps to stuff listed above Line 175-177
+4.	Included option ‘no_meteo’ and read in runoff, actualET, and sum_gwRecharge, etc. check units again!!! And conversion factor… Units should be m/day?, check if buffer is necessary for gwRecharge
+
+In routing_kinematic.py
+1.	Compute ‘self.var.EvapoChannel’ using open water evaporation in Line 355. Comment out line 354. Check later for factor?
+
+In runoff_concentration.py
+1.	If ‘includeRunoffConcentration = False’ turn off
+
+In landcoverType.py
+File has been almost entirely rewritten, most of initial is removed
+1.	Remove setting total ET to zero in line 294 and 879.
+2.	Remove self.var.totalSto in line 501 and 882
+3.	Move initialization of self.var.ElevationStD  to initial of landcoverType.py (line 558)
+
+In lakes_res_small.py
+1.	Remove modification of runoff in line 284 (test again!!!)
+
+In irrigation.py
+File has been almost entirely rewritten
+1.	soilWaterStorage = root zone soil moisture (Line 150)
+2.	readAvlWater = soilWaterStorage - (self.var.wwp1[No] + self.var.wwp2[No]) (Line 165)
+3.	Load time-varying crop coefficient maps (line 126-133)
+4.	Load self.var.minCropKC= loadmap('minCropKC') in initial (line 106)
+
+In setup.py
+1. Update Name, url, packages
+
+In run_cwatm.py
+1. Update Name
+
