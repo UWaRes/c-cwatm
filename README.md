@@ -14,14 +14,14 @@ C-CWatM is developed and maintained by the [UWaRes](https://ms.hereon.de/uwares/
 
 - Include flag in settingsfile to turn off paddy irrigation. If turned off, paddy fields will be treated as nonpaddy fields.
 - Check which modules are not necessary anymore, remove those modules
+- Remove unnecessary code from existing modules
+- Read in soil parameters (field capacity, etc.) as input data and remove all unnecessary input data from settingsfile.
 
 ### TODO
 
-- Remove unnecessary code from existing modules
 - Include OASIS coupling
-- Read in soil parameters (field capacity, etc.) as input data and remove all unnecessary input data from settingsfile.
 - many other things
 
 ## Input Data
 
-Please check the CWatM repository [CWatM-Earth-30min](https://github.com/iiasa/CWatM-Earth-30min), which contains input data for CWatM and C-CWatM at 30 arcminutes and further links to the 5 arcminutes resolution input data. A dedicated repository for C-CWatM will follow.
+Please check the CWatM repository [CWatM-Earth-30min](https://github.com/iiasa/CWatM-Earth-30min), which contains input data for CWatM and C-CWatM at 30 arcminutes and further links to the 5 arcminutes resolution input data. A dedicated repository for C-CWatM will follow. Please contact the UWaRes team in between.
