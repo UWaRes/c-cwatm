@@ -203,7 +203,12 @@ def loadsetclone(self,name):
     # if there is no ldd at a cell, this cell should be excluded from modelling
 
     maskldd = loadmap('Ldd', compress = False)
-    maskarea = np.bool8(mapnp)
+    try:
+        maskarea = np.bool8(mapnp)
+    except AttributeError:
+        # for newer numpy versions
+        maskarea = np.bool_(mapnp)
+
     mask = np.logical_not(np.logical_and(maskldd,maskarea))
 
 #    mask=np.isnan(mapnp)
