@@ -101,6 +101,13 @@ class CWATModel_ini(DynamicModel):
         self.routing_kinematic_module = routing_kinematic(self)
         self.lakes_reservoirs_module = lakes_reservoirs(self)
 
+        # as: OASIS3-MCT coupler
+        #if binding['coupl_flag']=='full_coupl':
+        if binding['coupl_flag']=='no_coupl': # for testing
+            from cwatm.management_modules.pyoasis_cpl import pyoasis_cpl
+            self.pyoasis_cpl_module = pyoasis_cpl(self)
+
+
         # ----------------------------------------
         # reading of the metainformation of variables to put into output netcdfs
         metaNetCDF()
@@ -130,5 +137,11 @@ class CWATModel_ini(DynamicModel):
         self.waterdemand_module.initial()
         self.output_module.initial()
         self.environflow_module.initial()
+
+        # as: initialize oasis coupling        
+        #if binding['coupl_flag']=='full_coupl':
+        if binding['coupl_flag']=='no_coupl': # for testing
+            self.pyoasis_cpl_module.initial()    
+
 
 
