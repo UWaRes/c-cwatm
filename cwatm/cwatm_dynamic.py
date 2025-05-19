@@ -96,6 +96,12 @@ class CWATModel_dyn(DynamicModel):
         self.output_module.dynamic()
         timemeasure("Output")  # 5. timing
 
+        # as: dynamic oasis coupling    
+        # TODO: at which position?    
+        #if binding['coupl_flag']=='full_coupl':
+        if binding['coupl_flag']=='no_coupl': # for testing
+            self.pyoasis_cpl_module.dynamic()  
+
         self.init_module.dynamic()
 
         for i in range(len(timeMes)):

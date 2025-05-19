@@ -37,8 +37,21 @@ class pyoasis_cpl(object):
         self.model = model
 
     def initial(self):
-        # comp = pyoasis.Component("hydro_component")
-        # TODO: needs namcouple file
+        self.comp = pyoasis.Component("hydro_component")
         # initialize pyoasis component, see toy model
+        # 1) get localcomm
+        # 2) partition definition
+        # 3) grid definition
+        # 4) declaration of coupling fields
+
+        ### OASIS_ENDDEF ###
+        self.comp.enddef()
+
+    def dynamic(self):
+        # 1) get
+        # 2) put
         pass
+
+
+
 
