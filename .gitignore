@@ -1,5 +1,6 @@
 cwatm/management_modules/__pycache__/*
 ccwatm.e
 ccwatm.o
-debug.root.01
+debug.root.*
 nout.*
+*.out_1*
