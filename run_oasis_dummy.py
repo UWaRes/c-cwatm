@@ -17,13 +17,10 @@ from pyoasis_cpl import oasis_specify_partition
 comp = pyoasis.Component("dummy_component")
 
 ### get localcomm and define partition
-w_unit = oasis_specify_partition(comp,rlat=433,rlon=433)
-
-
+partition, w_unit = oasis_specify_partition(comp,nlat=433,nlon=433)
 
 # Define the variable to send
 #forcing_var = oasis.def_var("FORCING_FIELD", oasis.OUT)
-
 
 ### TERMINATION OF DEFINITION PHASE ###
 print(' End of initialisation phase', file=w_unit)
@@ -32,6 +29,7 @@ w_unit.flush()
 ### OASIS_ENDDEF ###
 comp.enddef()
 
+# -------------------------------------------------------------------
 
 # Load forcing data (e.g., NetCDF)
 # maybe read from settings file??
