@@ -27,23 +27,29 @@ def oasis_specify_partition(oasis_component,nlat,nlon):
         print(' ----------------------------------------------------------', file=w_unit)
         w_unit.flush()
 
-        # --- partition definition ---
-        if (lcomm_rank == lcomm_size-1):
-            il_extenty = nlat - nlat//lcomm_size * lcomm_rank
-        else:
-            il_extenty = nlat//lcomm_size
-        segm_local_size = nlon * il_extenty
-        segm_global_offset = nlat//lcomm_size * lcomm_rank * nlon
+        if 0:
+           # old code, only used for apple partitioning
+            # --- partition definition ---
+            if (lcomm_rank == lcomm_size-1):
+                il_extenty = nlat - nlat//lcomm_size * lcomm_rank
+            else:
+                il_extenty = nlat//lcomm_size
+            segm_local_size = nlon * il_extenty
+            segm_global_offset = nlat//lcomm_size * lcomm_rank * nlon
 
-        print(' Local partition definition', file=w_unit)
-        w_unit.flush()
+            print(' Local partition definition', file=w_unit)
+            w_unit.flush()
 
-        # what is ig_paral used for??
-        ig_paral = [1, segm_global_offset, segm_local_size]
-        print(' ig_paral = ', ' '.join(map(str, ig_paral)), file=w_unit)
-        w_unit.flush()
+            # what is ig_paral used for? -> necessary only in fortran
+            ig_paral = [1, segm_global_offset, segm_local_size]
+            print(' ig_paral = ', ' '.join(map(str, ig_paral)), file=w_unit)
+            w_unit.flush()
 
-        partition = pyoasis.ApplePartition(segm_global_offset, segm_local_size)
+            partition = pyoasis.ApplePartition(segm_global_offset, segm_local_size)
+
+        # TODO: use serial partitioning for C-CWatM (and box or apple for REMO)
+        partition = pyoasis.SerialPartition(nlon*lat)
+
         
         return partition, w_unit
 
@@ -51,6 +57,14 @@ def oasis_define_grid():
 	#  GRID DEFINITION
 	# Reading local grid arrays from input file atmos_mesh.nc
 	grid_lon_atmos, grid_lat_atmos, grid_clo_atmos, grid_cla_atmos, grid_srf_atmos, grid_msk_atmos = read_grid(il_offsetx, il_offsety, il_extentx, il_extenty, nc_atmos, 'atmos_mesh.nc')
+
+        # grid_lon_atmos - dda_lon  2d - lon coordinates
+        # grid_lat_atmos - dda_lat  2d - lat coordinates
+        # grid_clo_atmos - dda_clo  3d - 4 corners of each lon coordinate
+        # grid_cla_atmos - dda_cla  3d - 4 conerns of each lat coordinate
+        # grid_srf_atmos - dda_srf  2d - grid cell area (not necessary for regular grid)
+        # grid_msk_atmos - ida_mask  2d - mask
+
 
 	# OASIS_WRITE_GRID  
 	grid = pyoasis.Grid('lmdz', nlon_atmos, nlat_atmos, grid_lon_atmos, grid_lat_atmos, partition)
@@ -60,18 +74,6 @@ def oasis_define_grid():
 
 	print(f' grid_lat_atmos maximum and minimum', '%.5f' % np.max(grid_lat_atmos), '%.5f' % np.min(grid_lat_atmos), file=w_unit)
 	w_unit.flush()
-
-
-def def_local_partition(nlon, nlat, npes, mype):
-    il_extentx = nlon
-    il_extenty = nlat//npes
-    if (mype == npes-1):
-        il_extenty = nlat - nlat//npes * mype
-    il_size = il_extentx * il_extenty
-    il_offsetx = 0
-    il_offsety = nlat//npes * mype
-    il_offset = nlon * il_offsety
-    return il_extentx, il_extenty, il_size, il_offsetx, il_offsety, il_offset
 
 def read_grid(id_begi, id_begj, id_lon, id_lat, nc, data_filename):
     gf = netCDF4.Dataset(data_filename, 'r')
@@ -90,36 +92,59 @@ def read_grid(id_begi, id_begj, id_lon, id_lat, nc, data_filename):
 
     return dda_lon, dda_lat, dda_clo, dda_cla, dda_srf, ida_mask
 
+def oasis_define_local_partition(nlon, nlat, lcomm_size, lcomm_rank):
+    # divided only in lat direction ?? does this also work for REMO??
+    extentx = nlon
+    extenty = nlat//lcomm_size
+    if (lcomm_rank == lcomm_size-1):
+        extenty = nlat - nlat//lcomm_size * lcomm_rank
+    local_size = extentx * extenty
+    offsetx = 0
+    offsety = nlat//lcomm_size * lcomm_rank
+    local_offset = nlon * offsety
+    return extentx, extenty, local_size, offsetx, offsety, local_offset
+
+
+
 # self.MaskMap = loadsetclone(self, 'MaskMap')
 # ?? MaskMap is never used again...
 
-#latmeteo, lonmeteo, cell, invcellmeteo, rows, cols = readCoordNetCDF(namemeteo)
 
-#nameldd = cbinding('Ldd')
-#latldd, lonldd, cell, invcellldd, rows, cols = readCoord(nameldd)
-#maskmapAttr['reso_mask_meteo'] = round(invcellldd / invcellmeteo)
+def create_2d_ccwatm_grid():
+    """
+    Create 2D arrays with grid coordinates from given C-CWatM grid specifications
+    """
+    # TODO: check ascending or descending
+    lon_1d = maskmapAttr['x'] + maskmapAttr['cell']*np.arange(maskmapAttr['col'])
+    lat_1d = maskmapAttr['y'] + maskmapAttr['cell']*np.arange(maskmapAttr['row'])
 
-#y, x, cell, invcell, rows, cols = readCoordNetCDF(filename)
-#setmaskmapAttr(x, y, cols, rows, cell)
+    lon_2d,lat_2d = np.meshgrid(lon_1d,lat_1d)
 
-#filename = cbinding(name)
-#nf2 = gdal.Open(filename, gdalconst.GA_ReadOnly)
-#geotransform = nf2.GetGeoTransform()
-#geotrans.append(geotransform)
-#setmaskmapAttr( geotransform[0], geotransform[3], nf2.RasterXSize, nf2.RasterYSize, geotransform[1])
+    return lon_2d,lat_2d
 
-# Default behaviour: grid size is derived from location attributes of
-# base maps. Requirements:
-# - Maps are in some equal-area projection
-# - Length units meters
-# - All grid cells have the same size
 
-# Area of pixel [m2]
-#self.var.cellArea=np.empty(maskinfo['mapC'])
-#self.var.cellArea.fill(maskmapAttr['cell'] ** 2)
+def derive_regular_grid_corners(lon,lat):
+    """
+    Derive the coordinates of the 4 corners of each grid box for given
+    center longitude and latitude.
+    """
+    dx = np.abs(lon[1,1] - lon[0,0])
+    dy = np.abs(lat[1,1] - lat[0,0])   
 
-#maskmapAttr['coordx'] = 'lon'
-#maskmapAttr['coordy'] = 'lat'
+    clo = pyoasis.asarray(np.zeros((lon.shape[0], lon.shape[1], 4), dtype=np.float64))
+    clo[:, :, 0] = lon[:, :] - dx/2.0
+    clo[:, :, 1] = lon[:, :] + dx/2.0
+    clo[:, :, 2] = clo[:, :, 1]
+    clo[:, :, 3] = clo[:, :, 0]
+    cla = pyoasis.asarray(np.zeros((lon.shape[0], lon.shape[1], 4), dtype=np.float64))
+    cla[:, :, 0] = lat[:, :] - dy/2.0
+    cla[:, :, 1] = cla[:, :, 0]
+    cla[:, :, 2] = lat[:, :] + dy/2.0
+    cla[:, :, 3] = cla[:, :, 2]
+
+    return clo, cla
+
+
 
 class pyoasis_cpl(object):
 
@@ -153,7 +178,13 @@ class pyoasis_cpl(object):
         clat = maskmapAttr['row']
         self.partition, self.w_unit = oasis_specify_partition(oasis_component,nlat=clat,nlon=clon)
 
-        # 3) grid definition TODO
+        # 3) grid definition
+
+        # get 2d coordinates of c-cwatm grid
+        lon_2d,lat_2d = create_2d_ccwatm_grid()
+        # get grid corner locations
+        clo,cla = derive_regular_grid_corners(lon_2d,lat_2d)
+        # TODO: function for 
 
         # 4) declaration of coupling fields TODO
 
