@@ -9,101 +9,49 @@
 # -------------------------------------------------------------------------
 
 import pyoasis
-from cwatm.management_modules.globals import maskmapAttr
+import numpy as np
+from cwatm.management_modules.globals import maskmapAttr, maskinfo
 
-def oasis_specify_partition(oasis_component,nlat,nlon):
-        # --- Get local communicator ---
-        local_communicator = oasis_component.localcomm
-        # Get rank in local communicator
-        lcomm_rank = local_communicator.rank
-        lcomm_size = local_communicator.size
-        # Unit for output messages : one file for each process
-        w_unit = 100 + lcomm_rank
-        component_outfile= oasis_component.name + '.out_'+str(w_unit)
-        w_unit = open(component_outfile, 'w')
-        print(' -----------------------------------------------------------', file=w_unit)
-        print(f' I am {oasis_component.name} process with rank : {lcomm_rank}', file=w_unit)
-        print(f' in my local communicator gathering {lcomm_size} processes', file=w_unit)
-        print(' ----------------------------------------------------------', file=w_unit)
-        w_unit.flush()
+def oasis_specify_partition(oasis_component,nlon,nlat):
+    # get local communicator
+    local_communicator = oasis_component.localcomm
+    # get rank in local communicator
+    lcomm_rank = local_communicator.rank
+    lcomm_size = local_communicator.size
+    # unit for output messages : one file for each process
+    w_unit = 100 + lcomm_rank
+    component_outfile= oasis_component.name + '.out_'+str(w_unit)
+    w_unit = open(component_outfile, 'w')
+    print(' -----------------------------------------------------------', file=w_unit)
+    print(f' I am {oasis_component.name} process with rank : {lcomm_rank}', file=w_unit)
+    print(f' in my local communicator gathering {lcomm_size} processes', file=w_unit)
+    print(' ----------------------------------------------------------', file=w_unit)
+    w_unit.flush()
 
-        if 0:
-           # old code, only used for apple partitioning
-            # --- partition definition ---
-            if (lcomm_rank == lcomm_size-1):
-                il_extenty = nlat - nlat//lcomm_size * lcomm_rank
-            else:
-                il_extenty = nlat//lcomm_size
-            segm_local_size = nlon * il_extenty
-            segm_global_offset = nlat//lcomm_size * lcomm_rank * nlon
+    print(' Local partition definition', file=w_unit)
+    w_unit.flush()
 
-            print(' Local partition definition', file=w_unit)
-            w_unit.flush()
-
-            # what is ig_paral used for? -> necessary only in fortran
-            ig_paral = [1, segm_global_offset, segm_local_size]
-            print(' ig_paral = ', ' '.join(map(str, ig_paral)), file=w_unit)
-            w_unit.flush()
-
-            partition = pyoasis.ApplePartition(segm_global_offset, segm_local_size)
-
-        # TODO: use serial partitioning for C-CWatM (and box or apple for REMO)
-        partition = pyoasis.SerialPartition(nlon*lat)
-
+    # use serial partitioning for C-CWatM (and box or apple for REMO)
+    partition = pyoasis.SerialPartition(nlon*nlat)
         
-        return partition, w_unit
-
-def oasis_define_grid():	
-	#  GRID DEFINITION
-	# Reading local grid arrays from input file atmos_mesh.nc
-	grid_lon_atmos, grid_lat_atmos, grid_clo_atmos, grid_cla_atmos, grid_srf_atmos, grid_msk_atmos = read_grid(il_offsetx, il_offsety, il_extentx, il_extenty, nc_atmos, 'atmos_mesh.nc')
-
-        # grid_lon_atmos - dda_lon  2d - lon coordinates
-        # grid_lat_atmos - dda_lat  2d - lat coordinates
-        # grid_clo_atmos - dda_clo  3d - 4 corners of each lon coordinate
-        # grid_cla_atmos - dda_cla  3d - 4 conerns of each lat coordinate
-        # grid_srf_atmos - dda_srf  2d - grid cell area (not necessary for regular grid)
-        # grid_msk_atmos - ida_mask  2d - mask
+    return partition, w_unit
 
 
-	# OASIS_WRITE_GRID  
-	grid = pyoasis.Grid('lmdz', nlon_atmos, nlat_atmos, grid_lon_atmos, grid_lat_atmos, partition)
-	grid.set_corners(grid_clo_atmos, grid_cla_atmos)
-	grid.set_mask(grid_msk_atmos)
-	grid.write()
+def oasis_define_grid_simple(nlon,nlat,grid_lon,grid_lat,landmask,partition,grid_name):	
+    # define grid name and center coordinates 
+    grid = pyoasis.Grid(grid_name, nlon, nlat, grid_lon, grid_lat, partition)
+    # define land-sea mask TODO: find mask variable in cwatm
+    grid.set_mask(landmask)
 
-	print(f' grid_lat_atmos maximum and minimum', '%.5f' % np.max(grid_lat_atmos), '%.5f' % np.min(grid_lat_atmos), file=w_unit)
-	w_unit.flush()
+    # -- different grid specifications are requied depending on the rempaping method --
+    # for first test, use nearest-neighbor or bilinear
+    # coners are only required for some conservative or ESMF-based remapping methods 
+    # that use cell shapes rather than just centers
+    #grid.set_corners(grid_clon, grid_clat)
+	
+    grid.write()
 
-def read_grid(id_begi, id_begj, id_lon, id_lat, nc, data_filename):
-    gf = netCDF4.Dataset(data_filename, 'r')
-    # Keep in mind Fortran is column-major while Python is row-major
-    # We are switching to column-major
-    dda_lon = np.transpose(gf['lon'][id_begj:id_begj+id_lat,id_begi:id_begi+id_lon])
-    dda_lat = np.transpose(gf['lat'][id_begj:id_begj+id_lat,id_begi:id_begi+id_lon])
-    dda_clo = np.transpose(gf['clo'][:nc,id_begj:id_begj+id_lat,id_begi:id_begi+id_lon])
-    dda_cla = np.transpose(gf['cla'][:nc,id_begj:id_begj+id_lat,id_begi:id_begi+id_lon])
-    dda_srf = np.transpose(gf['srf'][id_begj:id_begj+id_lat,id_begi:id_begi+id_lon])
-    ida_mask = np.transpose(gf['imask'][id_begj:id_begj+id_lat,id_begi:id_begi+id_lon])
-    gf.close()
-
-    # OASIS3 mask convention (1=masked, 0=not masked) is opposite to usual one)
-    ida_mask ^= 1
-
-    return dda_lon, dda_lat, dda_clo, dda_cla, dda_srf, ida_mask
-
-def oasis_define_local_partition(nlon, nlat, lcomm_size, lcomm_rank):
-    # divided only in lat direction ?? does this also work for REMO??
-    extentx = nlon
-    extenty = nlat//lcomm_size
-    if (lcomm_rank == lcomm_size-1):
-        extenty = nlat - nlat//lcomm_size * lcomm_rank
-    local_size = extentx * extenty
-    offsetx = 0
-    offsety = nlat//lcomm_size * lcomm_rank
-    local_offset = nlon * offsety
-    return extentx, extenty, local_size, offsetx, offsety, local_offset
-
+	
 
 
 # self.MaskMap = loadsetclone(self, 'MaskMap')
@@ -131,20 +79,20 @@ def derive_regular_grid_corners(lon,lat):
     dx = np.abs(lon[1,1] - lon[0,0])
     dy = np.abs(lat[1,1] - lat[0,0])   
 
-    clo = pyoasis.asarray(np.zeros((lon.shape[0], lon.shape[1], 4), dtype=np.float64))
-    clo[:, :, 0] = lon[:, :] - dx/2.0
-    clo[:, :, 1] = lon[:, :] + dx/2.0
-    clo[:, :, 2] = clo[:, :, 1]
-    clo[:, :, 3] = clo[:, :, 0]
-    cla = pyoasis.asarray(np.zeros((lon.shape[0], lon.shape[1], 4), dtype=np.float64))
-    cla[:, :, 0] = lat[:, :] - dy/2.0
-    cla[:, :, 1] = cla[:, :, 0]
-    cla[:, :, 2] = lat[:, :] + dy/2.0
-    cla[:, :, 3] = cla[:, :, 2]
+    clon = pyoasis.asarray(np.zeros((lon.shape[0], lon.shape[1], 4), dtype=np.float64))
+    clon[:, :, 0] = lon[:, :] - dx/2.0
+    clon[:, :, 1] = lon[:, :] + dx/2.0
+    clon[:, :, 2] = clon[:, :, 1]
+    clon[:, :, 3] = clon[:, :, 0]
+    clan = pyoasis.asarray(np.zeros((lon.shape[0], lon.shape[1], 4), dtype=np.float64))
+    clan[:, :, 0] = lat[:, :] - dy/2.0
+    clan[:, :, 1] = clan[:, :, 0]
+    clan[:, :, 2] = lat[:, :] + dy/2.0
+    clan[:, :, 3] = clan[:, :, 2]
 
-    return clo, cla
+    return clon, clan
 
-
+# ---------------------------------------------
 
 class pyoasis_cpl(object):
 
@@ -174,17 +122,31 @@ class pyoasis_cpl(object):
         oasis_component = pyoasis.Component("hydro_component")
 
         # 2) get local communicator and define partition
-        clon = maskmapAttr['col']
-        clat = maskmapAttr['row']
-        self.partition, self.w_unit = oasis_specify_partition(oasis_component,nlat=clat,nlon=clon)
+        nlon_cwatm = maskmapAttr['col']
+        nlat_cwatm = maskmapAttr['row']
+        self.partition, self.w_unit = oasis_specify_partition(oasis_component,nlon=nlon_cwatm,nlat=nlat_cwatm)
 
         # 3) grid definition
-
         # get 2d coordinates of c-cwatm grid
         lon_2d,lat_2d = create_2d_ccwatm_grid()
+        print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min(lon_2d), file=self.w_unit)
+        print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=self.w_unit)
+        self.w_unit.flush()
         # get grid corner locations
-        clo,cla = derive_regular_grid_corners(lon_2d,lat_2d)
-        # TODO: function for 
+        corner_lon,corner_lat = derive_regular_grid_corners(lon_2d,lat_2d)
+        # function for writing oasis grid information
+        oasis_define_grid_simple(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'],self.partition,'ccwatm_grid')
+
+        # load ldd for land-sea mask
+        # TODO: needs to be cut to correct domain
+        #print('sum mask:',np.sum(~maskinfo['mask']))
+        #print('mask:',maskinfo['mask'].shape)
+        #print('maskflat:',maskinfo['maskflat'].shape)
+        #print('sum maskflat:', np.sum(~maskinfo['maskflat']))
+        #print('gridsize:', maskmapAttr['col']*maskmapAttr['row'])
+
+        # -> maskinfo['mask'] is the land-sea mask
+
 
         # 4) declaration of coupling fields TODO
 

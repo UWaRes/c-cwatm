@@ -4,3 +4,5 @@ ccwatm.o
 debug.root.*
 nout.*
 *.out_1*
+grids.nc
+masks.nc
