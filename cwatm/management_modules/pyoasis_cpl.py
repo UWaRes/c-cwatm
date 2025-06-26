@@ -133,7 +133,7 @@ class pyoasis_cpl(object):
         print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=self.w_unit)
         self.w_unit.flush()
         # get grid corner locations
-        corner_lon,corner_lat = derive_regular_grid_corners(lon_2d,lat_2d)
+        #corner_lon,corner_lat = derive_regular_grid_corners(lon_2d,lat_2d)
         # function for writing oasis grid information
         oasis_define_grid_simple(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'],self.partition,'ccwatm_grid')
 
@@ -149,6 +149,18 @@ class pyoasis_cpl(object):
 
 
         # 4) declaration of coupling fields TODO
+
+
+        #  DECLARATION OF THE COUPLING FIELDS
+        ################## OASIS_DEF_VAR #################################
+        #var_id = [None]
+        # TODO -> "FIELD_RECV_ATM" needs to be declared in namcouple file
+        #var_id[0] = pyoasis.Var("FIELD_RECV_hydro", self.partition, OASIS.IN)
+        #print(f' var_id FRECVATM, {var_id[0]._id}', file=self.w_unit)
+        #self.w_unit.flush()
+
+
+
 
         # 5) termination of definition phase
         print(' End of initialisation phase', file=self.w_unit)
