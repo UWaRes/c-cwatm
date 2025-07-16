@@ -46,7 +46,7 @@ def oasis_specify_partition(oasis_component,nlon,nlat):
     return partition, w_unit
 
 
-def oasis_define_grid_simple(nlon,nlat,grid_lon,grid_lat,landmask,partition,grid_name):	
+def oasis_define_grid(nlon,nlat,grid_lon,grid_lat,landmask,partition,grid_name,grid_clon=None,grid_clat=None):	
     """
     TODO
     """
@@ -59,22 +59,8 @@ def oasis_define_grid_simple(nlon,nlat,grid_lon,grid_lat,landmask,partition,grid
     # for first test, use nearest-neighbor or bilinear
     # corners are only required for some conservative or ESMF-based remapping methods 
     # that use cell shapes rather than just centers
-    #grid.set_corners(grid_clon, grid_clat)
-
-def oasis_define_grid(nlon,nlat,grid_lon,grid_lat,grid_clon,grid_clat,landmask,partition,grid_name):	
-    """
-    TODO
-    """
-    # define grid name and center coordinates 
-    grid = pyoasis.Grid(grid_name, nlon, nlat, grid_lon, grid_lat, partition)
-    # define land-sea mask
-    grid.set_mask(landmask)
-
-    # -- different grid specifications are requied depending on the remapping method --
-    # for first test, use nearest-neighbor or bilinear
-    # corners are only required for some conservative or ESMF-based remapping methods 
-    # that use cell shapes rather than just centers
-    grid.set_corners(grid_clon, grid_clat)
+    if grid_clon is not None and grid_clat is not None:
+        grid.set_corners(grid_clon, grid_clat)
 	
     grid.write()
 
@@ -85,18 +71,12 @@ def create_2d_ccwatm_grid():
     """
     Create 2D arrays with grid coordinates from given C-CWatM grid specifications
     """
-    # TODO: check ascending or descending
+
     lon_1d = maskmapAttr['x'] + maskmapAttr['cell']*np.arange(maskmapAttr['col'])
     # lat starts with the northernmost latitude
-    #lat_1d = maskmapAttr['y'] - maskmapAttr['cell']*np.arange(maskmapAttr['row'])
     lat_1d = maskmapAttr['y'] - maskmapAttr['cell']*np.arange(maskmapAttr['row'])
 
-    #lon_2d,lat_2d = np.meshgrid(lon_1d,lat_1d[::-1]) # test1
     lat_2d,lon_2d = np.meshgrid(lat_1d[::-1],lon_1d)
-    #lon_2d,lat_2d = np.meshgrid(lon_1d,lat_1d)
-    #lon_2d,lat_2d = np.meshgrid(lon_1d[::-1],lat_1d) # test2
-    #lon_2d,lat_2d = np.meshgrid(lon_1d,lat_1d[::-1]) # test3
-    #lon_2d,lat_2d = np.meshgrid(lon_1d[::-1],lat_1d[::-1]) # test4
 
     return lon_2d,lat_2d
 
@@ -105,6 +85,7 @@ def derive_regular_grid_corners(lon,lat):
     """
     Derive the coordinates of the 4 corners of each grid box for given
     center longitude and latitude.
+    OASIS requires counter-clockwise order of corners.
     """
     dx = np.abs(lon[1,1] - lon[0,0])
     dy = np.abs(lat[1,1] - lat[0,0])   
@@ -164,12 +145,6 @@ class pyoasis_cpl(object):
         self.var.londummy = np.ma.compressed(mapnp1)
         mapnp1 = np.ma.masked_array(lat_2d, maskinfo['mask'])
         self.var.latdummy = np.ma.compressed(mapnp1)
-        #self.var.lontest = lon_2d.copy()
-        #self.var.lattest =lat_2d.copy()
-        #print('lon shape',self.var.lontest.shape)
-        #mapnp1 = np.ma.masked_array(lon_2d, maskinfo['mask'])
-        #mapC = np.ma.compressed(mapnp1)
-        #print('lon compressed shape',mapC.shape)
 
         grid_clon, grid_clat = derive_regular_grid_corners(lon_2d,lat_2d)
         
@@ -177,17 +152,8 @@ class pyoasis_cpl(object):
         print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=self.w_unit)
         self.w_unit.flush()
         # write oasis grid information
-        # TODO: check 0 and 1 in mask
-        dummymask = np.ones(maskinfo['mask'].T.data.shape)
-        #oasis_define_grid_simple(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,dummymask,self.partition,'ccwatm_grid')
-        #oasis_define_grid_simple(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,1-maskinfo['mask'].T.data,self.partition,'ccwatm_grid')
-        # dummy
-        #oasis_define_grid_simple(nlat_cwatm,nlon_cwatm,lon_2d,lat_2d,maskinfo['mask'],self.partition,'ccwatm_grid')
-
-        # with corners
-        #oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,grid_clon,grid_clat,1-maskinfo['mask'].T.data,self.partition,'ccwatm_grid') 
-        #oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,grid_clon,grid_clat,1-maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid')
-        oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,grid_clon,grid_clat,maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid')
+        #oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid',grid_clon,grid_clat)
+        oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid')
 
         # 4) declaration of coupling fields
         self.oasisvar_id = [None]
@@ -200,29 +166,26 @@ class pyoasis_cpl(object):
         self.w_unit.flush()
         oasis_component.enddef()
 
+    
     def dynamic(self):
+
+        # TODO: might have to be divided into 2 parts for model forcing and irriwater - to be called at different places
+        # in cwatm_dynamic. -> check later
+        
         # Calculate the time passed in seconds
         seconds_passed = int((dateVar['currDate'] - dateVar['dateStart']).total_seconds())
         print('C-CWatM time loop',seconds_passed, file=self.w_unit)
         self.w_unit.flush()
         # 1) get
         field_recv_atmos = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
-        #field_recv_atmos = pyoasis.asarray(np.full((maskmapAttr['row'], maskmapAttr['col']), -1.0))
         self.oasisvar_id[0].get(seconds_passed, field_recv_atmos)
 
-        #mapnp1 = np.ma.masked_array(field_recv_atmos[:,::-1], maskinfo['mask'])
         mapnp1 = np.ma.masked_array(field_recv_atmos.T[:,::-1], maskinfo['mask']) # this gives non-zero output
-        #mapnp1 = np.ma.masked_array(field_recv_atmos.T[:,::-1], maskinfo['mask'])
-        #mapnp1 = np.ma.masked_array(field_recv_atmos, maskinfo['mask'])
         print('recv shape:',field_recv_atmos.shape)
         print('mask shape:',maskinfo['mask'].shape)
-        #mapnp1 = np.ma.masked_array(field_recv_atmos, maskinfo['mask'].T[:,::-1])
         self.var.oasisdummy = np.ma.compressed(mapnp1)
-        #mapnp1 = np.ma.masked_array(field_recv_atmos.T, maskinfo['mask'])
-        #self.var.oasisdummy = np.ma.compressed(field_recv_atmos)
-        #print('lon compressed shape',mapC.shape)
 
-       
+
         nf1 = Dataset('test_dummy.nc', 'w', format='NETCDF4')
         row,col = field_recv_atmos.shape
         lat = nf1.createDimension('lat',row)

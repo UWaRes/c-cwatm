@@ -47,11 +47,11 @@ SCRIPR
 #
 # Specific parameters for SCRIPR, here specifying the parameter of the BLINEAR interpolation to be used
 # this works 
-#DISTWGT LR SCALAR LATLON 10 1 
+DISTWGT LR SCALAR LATLON 10 1 
 # this works
 #DISTWGT LR SCALAR LATLON 10 4 
-#
-BILINEAR LR SCALAR LATLON 1
+# this works
+#BILINEAR LR SCALAR LATLON 1
 ##DISTWGT LR SCALAR LATLON 1
 # 
 #

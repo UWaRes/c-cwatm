@@ -9,7 +9,7 @@ import os
 # Add the relative path to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), './cwatm/management_modules/')))
 
-from pyoasis_cpl import oasis_specify_partition, oasis_define_grid_simple, oasis_define_grid, derive_regular_grid_corners
+from pyoasis_cpl import oasis_specify_partition, oasis_define_grid, derive_regular_grid_corners
 
 
 # --- function for grid cell corners ---
@@ -144,7 +144,6 @@ def spherical_polygon_area(coords, radius=1.0):
     return np.abs(total_area * radius ** 2)
 
 
-
 # -- read grid data of REMO input file---
 filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
 ds = xr.open_dataset(filepath+'e100001n_c140_200001.nc')
@@ -153,26 +152,7 @@ lat_2d = ds['lat'].values.T
 nlon_forcing = lon_2d.shape[0]
 nlat_forcing = lon_2d.shape[1]
 
-# test with dummy regular grid:
-latmin, latmax = 34.851, 71.185
-lonmin, lonmax = -10.668, 41.29
-deltalat = (latmax-latmin)/nlat_forcing
-deltalon = (lonmax-lonmin)/nlon_forcing
-
-# -> same as for ccwatm
-#lon_1d = lonmin + deltalon*np.arange(nlon_forcing)
-#lat_1d = latmax - deltalat*np.arange(nlat_forcing)
-#lat_2d,lon_2d = np.meshgrid(lat_1d[::-1],lon_1d)
-
-
 # --- derive grid corners ---
-
-# TODO: this is a dummy for a regular grid
-##grid_clon, grid_clat = derive_regular_grid_corners(lon_2d.T,lat_2d.T)
-#grid_clon, grid_clat = derive_regular_grid_corners(lon_2d,lat_2d)
-
-
-#lon_rot,lat_rot = np.meshgrid(ds['rlon'].values,ds['rlat'].values)
 lat_rot,lon_rot = np.meshgrid(ds['rlat'].values,ds['rlon'].values)
 rlon_corners,rlat_corners = calc_rotgrid_corners(lon_rot,lat_rot)
 
@@ -181,13 +161,10 @@ rot_pole_lat = ds.rotated_latitude_longitude.grid_north_pole_latitude
 grid_clon = unrot_lon(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
 grid_clat = unrot_lat(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
 
-
+# TODO: create coordinate and landmask file to be provided with C-CWatM
 # get landmask from soil water data
 landmask_input = ds['WS'][0,:,:].values
 landmask_input[landmask_input>0] = 1 
-# dummy
-#landmask_input = np.ones(landmask_input.shape)
-#landmask_input[:,:] = 0 
 
 # TODO: put in function?
 # --- 1) Initialization ---
@@ -202,13 +179,8 @@ print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min
 print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=w_unit)
 w_unit.flush()
 # function for writing oasis grid information
-# test1:
-#oasis_define_grid_simple(nlon_forcing,nlat_forcing,lon_2d.T,lat_2d.T,landmask_input.T[:,::-1],partition,'forcing_grid')
-
-# with corners
-#oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d.T,lat_2d.T,grid_clon,grid_clat,landmask_input.T[:,::-1],partition,'forcing_grid')
-#oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,grid_clon,grid_clat,landmask_input.T,partition,'forcing_grid')
-oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,grid_clon,grid_clat,1-landmask_input.T,partition,'forcing_grid')
+#oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input.T,partition,'forcing_grid',grid_clon,grid_clat)
+oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input.T,partition,'forcing_grid')
 
 # Define the variable to send
 #forcing_var = oasis.def_var("FORCING_FIELD", oasis.OUT)
