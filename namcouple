@@ -5,11 +5,11 @@
 #########################################################################
  $NFIELDS
 # The number of fields described in the second part of the namcouple.
-             0
+             1
 ###########################################################################
  $RUNTIME
 # The total simulated time for this run in seconds
-  432000
+  345601
 ###########################################################################
  $NLOGPRT
 # Amount of information written to OASIS3-MCT log files (see User Guide)
@@ -23,28 +23,35 @@
 #
 # Field 1: forcing to hydro 
 #
-#   First line:
+# First line:
 # 1) and 2) Symbolic names for the field in the source and target component models
 # 3) Not used anymore but still required for parsing
 # 4) Exchange frequency for the field in seconds
 # 5) Number of transformation to be performed by OASIS3-MCT
 # 6) Coupling restart file names
 # 7) Field status: EXPORTED, EXPOUT, INPUT, OUTPUT
-##FIELD_SEND_forcing FIELD_RECV_hydro 1 3600  1  fdocn.nc EXPOUT
+FIELD_SEND_forcing FIELD_RECV_hydro 1 86400 1 fdocn.nc EXPOUT
 #
-#   Second line:
+# Second line:
 # 1)-2) and 3)-4) Source and target grid first and 2nd dimensions (optional)
 # 5) and 6) Source and target grid prefix (4 characters)
 # 7) LAG index if needed
-##625 437 433 433 forcing_grid ccwatm_grid  LAG=+3600
+forcing_grid ccwatm_grid 
 #
 #   Third line:
 # Overlap (P or R) and nbr of overlap grid points for source and target grids.
-##P  2  P  0
+R  0  R  0
 #
-# List of analyses (here only MAPPING)
-##MAPPING
+# List of analyses (here only SCRIPR)
+SCRIPR 
 #
-# Specific parameters for each analysis (here only the name of the remapping file for MAPPING)
-##my_remapping_file_bilinear.nc
+# Specific parameters for SCRIPR, here specifying the parameter of the BLINEAR interpolation to be used
+# this works 
+#DISTWGT LR SCALAR LATLON 10 1 
+# this works
+#DISTWGT LR SCALAR LATLON 10 4 
+#
+BILINEAR LR SCALAR LATLON 1
+##DISTWGT LR SCALAR LATLON 1
+# 
 #

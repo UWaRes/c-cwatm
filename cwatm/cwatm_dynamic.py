@@ -53,6 +53,12 @@ class CWATModel_dyn(DynamicModel):
         self.readmeteo_module.dynamic()
         timemeasure("Read meteo")  # 1. timing after read input maps
 
+        # as: dynamic oasis coupling    
+        # TODO: at which position?    
+        #if binding['coupl_flag']=='full_coupl':
+        if binding['coupl_flag']=='no_coupl': # for testing
+            self.pyoasis_cpl_module.dynamic()  
+
         if Flags['calib']:
             self.output_module.dynamic()
             return
@@ -96,11 +102,7 @@ class CWATModel_dyn(DynamicModel):
         self.output_module.dynamic()
         timemeasure("Output")  # 5. timing
 
-        # as: dynamic oasis coupling    
-        # TODO: at which position?    
-        #if binding['coupl_flag']=='full_coupl':
-        if binding['coupl_flag']=='no_coupl': # for testing
-            self.pyoasis_cpl_module.dynamic()  
+
 
         self.init_module.dynamic()
 

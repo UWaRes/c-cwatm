@@ -1,8 +1,8 @@
 cwatm/management_modules/__pycache__/*
 ccwatm.e
 ccwatm.o
-debug.root.*
+debug.*
 nout.*
 *.out_1*
-grids.nc
-masks.nc
+*.nc
+fort*

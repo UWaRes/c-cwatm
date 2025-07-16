@@ -182,6 +182,7 @@ class readmeteo(object):
             # read runoff
             self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
             self.var.runoff = np.maximum(0., self.var.runoff)
+            print('runoff shape', self.var.runoff.shape)
     
             # read ground water recharge
             self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
