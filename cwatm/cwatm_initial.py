@@ -123,6 +123,11 @@ class CWATModel_ini(DynamicModel):
         self.misc_module.initial()
         self.init_module.initial()
 
+        # as: initialize oasis coupling        
+        # initialize oasis first, then check in readmeteo
+        if binding['coupl_flag']=='oasis_coupl': 
+            self.pyoasis_cpl_module.initial()
+        
         self.readmeteo_module.initial()
         self.inflow_module.initial()
         self.groundwater_module.initial()
@@ -138,6 +143,7 @@ class CWATModel_ini(DynamicModel):
         self.output_module.initial()
         self.environflow_module.initial()
 
+        # TODO: delete after testing
         # as: initialize oasis coupling        
         #if binding['coupl_flag']=='full_coupl':
         if binding['coupl_flag']=='no_coupl': # for testing

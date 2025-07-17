@@ -5,7 +5,7 @@
 #########################################################################
  $NFIELDS
 # The number of fields described in the second part of the namcouple.
-             1
+             2
 ###########################################################################
  $RUNTIME
 # The total simulated time for this run in seconds
@@ -21,7 +21,7 @@
 #
 ######################################################
 #
-# Field 1: forcing to hydro 
+# Field 1: runoff to C-CWatM forcing 
 #
 # First line:
 # 1) and 2) Symbolic names for the field in the source and target component models
@@ -30,7 +30,7 @@
 # 5) Number of transformation to be performed by OASIS3-MCT
 # 6) Coupling restart file names
 # 7) Field status: EXPORTED, EXPOUT, INPUT, OUTPUT
-FIELD_SEND_forcing FIELD_RECV_hydro 1 86400 1 fdocn.nc EXPOUT
+FIELD_SEND_runoff ccwatm_recv_runoff 1 86400 1 fdocn.nc EXPOUT
 #
 # Second line:
 # 1)-2) and 3)-4) Source and target grid first and 2nd dimensions (optional)
@@ -54,4 +54,15 @@ DISTWGT LR SCALAR LATLON 10 1
 #BILINEAR LR SCALAR LATLON 1
 ##DISTWGT LR SCALAR LATLON 1
 # 
+######################################################
+#
+# Field 2: ground water recharge to C-CWatM forcing 
+#
+FIELD_SEND_gwRecharge ccwatm_recv_gwRecharge 1 86400 1 fdocn.nc EXPOUT
+forcing_grid ccwatm_grid 
+R  0  R  0
+SCRIPR 
+DISTWGT LR SCALAR LATLON 10 1 
+# 
+######################################################
 #

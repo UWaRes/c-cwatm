@@ -143,6 +143,14 @@ class readmeteo(object):
             # Read landsurface maps
             meteomaps = [self.var.QMaps, self.var.GWMaps, self.var.SMMaps, self.var.OWEMaps] #Peter Greve Test
             multinetdf(meteomaps)
+        elif binding['coupl_flag']=='oasis_coupl':  
+            # check if oasis has been initialized
+            # oasisvar_id should contain at least the 4 forcing variables
+            if len(self.oasisvar_id) < 4:
+                # TODO: raise error
+                print('Not all 4 required forcing variables are exchanged via OASIS.')
+            else:
+                print('Forcing data will be received using OASIS.')
         
         if self.var.includeGlaciers:
             self.var.glaciermeltMaps = 'MeltGlacierMaps'

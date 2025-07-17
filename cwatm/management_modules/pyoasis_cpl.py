@@ -156,10 +156,15 @@ class pyoasis_cpl(object):
         oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid')
 
         # 4) declaration of coupling fields
-        self.oasisvar_id = [None]
-        self.oasisvar_id[0] = pyoasis.Var("FIELD_RECV_hydro", self.partition, OASIS.IN)
+        numcouple = 2 # number of coupling fields
+        self.oasisvar_id = [None] * numcouple
+        #self.oasisvar_id[0] = pyoasis.Var("FIELD_RECV_hydro", self.partition, OASIS.IN)
+        self.oasisvar_id[0] = pyoasis.Var("ccwatm_recv_runoff", self.partition, OASIS.IN)
+        self.oasisvar_id[1] = pyoasis.Var("ccwatm_recv_gwRecharge", self.partition, OASIS.IN)
+        
         print(f' self.oasisvar_id FIELD_RECV_hydro, {self.oasisvar_id[0]._id}', file=self.w_unit)
         self.w_unit.flush()
+        # TODO: repeat for all 4 forcing variables (also in namcouple)
 
         # 5) termination of definition phase
         print(' End of initialisation phase', file=self.w_unit)
@@ -177,22 +182,26 @@ class pyoasis_cpl(object):
         print('C-CWatM time loop',seconds_passed, file=self.w_unit)
         self.w_unit.flush()
         # 1) get
-        field_recv_atmos = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
-        self.oasisvar_id[0].get(seconds_passed, field_recv_atmos)
+        # runoff
+        field_recv_runoff = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
+        self.oasisvar_id[0].get(seconds_passed, field_recv_runoff)
+        field_recv_gwRecharge = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
+        self.oasisvar_id[1].get(seconds_passed, field_recv_gwRecharge)
+        
 
-        mapnp1 = np.ma.masked_array(field_recv_atmos.T[:,::-1], maskinfo['mask']) # this gives non-zero output
-        print('recv shape:',field_recv_atmos.shape)
+        mapnp1 = np.ma.masked_array(field_recv_runoff.T[:,::-1], maskinfo['mask']) # this gives non-zero output
+        print('recv shape:',field_recv_runoff.shape)
         print('mask shape:',maskinfo['mask'].shape)
         self.var.oasisdummy = np.ma.compressed(mapnp1)
 
 
         nf1 = Dataset('test_dummy.nc', 'w', format='NETCDF4')
-        row,col = field_recv_atmos.shape
+        row,col = field_recv_runoff.shape
         lat = nf1.createDimension('lat',row)
         lon = nf1.createDimension('lon',col)
         #nf1.createDimension('time', 5)
         value = nf1.createVariable('dummyvar', 'f4', ('lat', 'lon'), zlib=True, fill_value=1e20,chunksizes=(row,col))
-        nf1.variables['dummyvar'][:, :] = field_recv_atmos
+        nf1.variables['dummyvar'][:, :] = field_recv_runoff
         nf1.close()
 
         # 2) put

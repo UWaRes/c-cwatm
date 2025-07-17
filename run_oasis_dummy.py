@@ -186,9 +186,10 @@ oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input.T,par
 #forcing_var = oasis.def_var("FORCING_FIELD", oasis.OUT)
 #  DECLARATION OF THE COUPLING FIELDS
 ################## OASIS_DEF_VAR #################################
-var_id = [None]
+var_id = [None]*2
 # TODO -> "FIELD_RECV_ATM" needs to be declared in namcouple file
-var_id[0] = pyoasis.Var("FIELD_SEND_forcing", partition, OASIS.OUT)
+var_id[0] = pyoasis.Var("FIELD_SEND_runoff", partition, OASIS.OUT)
+var_id[1] = pyoasis.Var("FIELD_SEND_gwRecharge", partition, OASIS.OUT)
 print(f' var_id FRECVATM, {var_id[0]._id}', file=w_unit)
 w_unit.flush()
 
@@ -224,6 +225,7 @@ for t in range(5): # same number of time loops as C-CWatM
     #var_id[0].put(seconds_passed, data_t[::-1,:])
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
     var_id[0].put(seconds_passed, data_t)
+    var_id[1].put(seconds_passed, data_t)
 
 # Finalize
 del comp
