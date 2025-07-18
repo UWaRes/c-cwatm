@@ -179,9 +179,12 @@ binding = parse_settings_file('settings_CCWatM_5min_example.ini')
 #print('Keys:',list(binding['COUPLING'].keys()))
 meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
 
+# read monthly files
+# TODO: include in time loop, reload every month
 starttime = binding['TIME-RELATED_CONSTANTS']['StepStart']
 ctime = datetime.datetime.strptime(starttime, '%d/%m/%Y')
 meteoforc.read_forcing(ctime,'runoff',binding['COUPLING']['RunoffName'])
+meteoforc.read_forcing(ctime,'sum_gwRecharge',binding['COUPLING']['GWName'])
 print(meteoforc.runoff.shape)
 
 
