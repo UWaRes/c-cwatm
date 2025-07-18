@@ -5,12 +5,15 @@ import numpy as np
 
 import sys
 import os
+#import time
+import datetime
 
 # Add the relative path to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), './cwatm/management_modules/')))
 
 from pyoasis_cpl import oasis_specify_partition, oasis_define_grid, derive_regular_grid_corners
-
+from coupling import MeteoForc2Var
+from configuration import parse_configuration
 
 # --- function for grid cell corners ---
 
@@ -142,6 +145,44 @@ def spherical_polygon_area(coords, radius=1.0):
     
     # Scale by radius squared if needed (e.g. Earth: radius=6371e3 for meters)
     return np.abs(total_area * radius ** 2)
+
+# get values from settingsfile
+def parse_settings_file(filepath):
+    settings = {}
+    current_section = None
+    with open(filepath, 'r') as f:
+        for line in f:
+            # Remove comments and whitespace
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            # Detect section headers
+            if line.startswith('[') and line.endswith(']'):
+                current_section = line[1:-1].strip()
+                settings[current_section] = {}
+                continue
+
+            # Parse key-value pairs
+            if '=' in line and current_section:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                settings[current_section][key] = value
+
+    return settings
+
+# -- get data path from settings file ---
+#starttime = time.time()
+binding = parse_settings_file('settings_CCWatM_5min_example.ini')
+#print(time.time()-starttime)
+#print('Keys:',list(binding['COUPLING'].keys()))
+meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
+
+starttime = binding['TIME-RELATED_CONSTANTS']['StepStart']
+ctime = datetime.datetime.strptime(starttime, '%d/%m/%Y')
+meteoforc.read_forcing(ctime,'runoff',binding['COUPLING']['RunoffName'])
+print(meteoforc.runoff.shape)
 
 
 # -- read grid data of REMO input file---

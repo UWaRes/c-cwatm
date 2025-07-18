@@ -9,22 +9,25 @@
 # -------------------------------------------------------------------------
 
 import xarray as xr
-from scipy.interpolate import griddata
+import math
+import datetime
+#from scipy.interpolate import griddata
 
 class MeteoForc2Var:
-    def __init__(self,clat,clon,ctime,inpath,fmodel_flag):
+    #def __init__(self,clat,clon,ctime,inpath,fmodel_flag):
+    def __init__(self,inpath,fmodel_flag):
         """
         fmodel_flag : 'remo' (add others later) model used for meteorological forcing
         """
-        self.clat = clat   # 1D array of CWatM latitudes
-        self.clon = clon   # 1D array of CWatM longitudes
-        self.ctime = ctime   # time at current CWatM step
+        #self.clat = clat   # 1D array of CWatM latitudes
+        #self.clon = clon   # 1D array of CWatM longitudes
+        #self.ctime = ctime   # time at current CWatM step
         self.inpath = inpath   # path where forcing data are stored 
         self.fmodel_flag = fmodel_flag
         # get variable names for specified model
         self.varnames_dict()
 
-    def read_forcing(self,varflag,infile):
+    def read_forcing(self,ctime,varflag,infile):
         """
         Read climate model output file with forcing data
         varflag : 'runoff', 'sum_gwRecharge', 'rootzoneSM' or 'EWRef'
@@ -33,14 +36,16 @@ class MeteoForc2Var:
 
         # read dataset
         # TODO: check if exists first??
-        ds = xr.open_mfdataset(self.get_filename(infile))  
+        forc_filename = self.get_filename(ctime,varflag,infile)
+        print(forc_filename)
+        ds = xr.open_dataset(forc_filename)  
 
         # select data for specified date 
-        if fmodel_flag == 'remo':
+        if self.fmodel_flag == 'remo':
             # convert time format for REMO forcing
             ds = parse_dates(ds)
         
-        data_for_date = ds.sel(time=self.ctime)
+        data_for_date = ds.sel(time=ctime)
         
         # get variable
         forc_varname = self.varsdict[varflag]
@@ -60,22 +65,23 @@ class MeteoForc2Var:
         """
         Convert a 2D forcing variable to a C-CWatM 2D variable.
         """
+        pass
         # convert units if necessary
-        self.convert_units(varflag)
+        #self.convert_units(varflag)
 
         # prepare coordinates
-        if self.fmodel_flag == 'remo':
-            # remo has an unstructured grid with 2d coordinates
-            forclat_flat = self.forclat.flatten()
-            forclon_flat = self.forclon.flatten()
-        forcdata_flat = getattr(self,varflag).values.flatten()
-        clon_mesh, clat_mesh = np.meshgrid(self.clon, self.clat)
+        #if self.fmodel_flag == 'remo':
+        #    # remo has an unstructured grid with 2d coordinates
+        #    forclat_flat = self.forclat.flatten()
+        #    forclon_flat = self.forclon.flatten()
+        #forcdata_flat = getattr(self,varflag).values.flatten()
+        #clon_mesh, clat_mesh = np.meshgrid(self.clon, self.clat)
         
         # interpolate
         # TODO: check methods, mask nans?
         # TODO: find more time efficient function
-        interpolated_data = griddata((forclat_flat, forclon_flat), forcdata_flat, (clat_mesh, clon_mesh), method='linear')
-        setattr(self, varflag, interpolated_data)
+        #interpolated_data = griddata((forclat_flat, forclon_flat), forcdata_flat, (clat_mesh, clon_mesh), method='linear')
+        #setattr(self, varflag, interpolated_data)
 
     
     # --- functions used by read_forcing ---
@@ -91,18 +97,19 @@ class MeteoForc2Var:
                              'lat':'lat' ,
                              'lon':'lon' }
         else:
-            msg = "Error : " + fmodel_flag + " is not a valid model name. \n"
+            msg = "Error : " +self.fmodel_flag + " is not a valid model name. \n"
             raise CWATMError(msg)
 
     
-    def get_filename(self,infile):
+    def get_filename(self,ctime,varflag,infile):
         """
         return a string of the path and filenames of the forcing files
         """
         if self.fmodel_flag == 'remo':
             # the date format in the REMO filename is YYYYMM
-            rdate = self.ctime.strftime('%Y%m')
-            ffname = self.inpath+infile+'_*_'+rdate+'.nc'
+            rdate = ctime.strftime('%Y%m')
+            varnumber = 'c160'
+            ffname = self.inpath+infile+'_'+varnumber+'_'+rdate+'.nc'
             return ffname
         else:
             msg = "Error : " + self.fmodel_flag + " is not a valid model name. \n"
