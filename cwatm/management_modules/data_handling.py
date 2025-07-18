@@ -12,7 +12,7 @@ import os, glob
 import calendar
 
 #import numpy as np
-from . import globals
+from cwatm.management_modules import globals
 from cwatm.management_modules.checks import *
 from cwatm.management_modules.timestep import *
 from cwatm.management_modules.replace_pcr import *
@@ -815,12 +815,42 @@ def mapattrTiff(nf2):
 
 def multinetdf(meteomaps, startcheck = 'dateBegin'):
     """
+    Processes a list of meteorological NetCDF map stacks to determine the start and end time 
+    indices for simulation runs, based on the specified start date.
 
-    :param meteomaps: list of meteomaps to define start and end time
-    :param startcheck: date of beginning simulation
-    :return:
+    This function reads NetCDF files corresponding to each meteorological map in the input list,
+    extracts time information, and calculates the indices for simulation start and end dates.
+    It populates global dictionaries (meteofiles, inputcounter, flagmeteo) with relevant
+    metadata for further use in the simulation workflow.
 
-    :raises if no map stack in meteo map folder: :meth:`management_modules.messages.CWATMFileError`
+    Parameters:
+    ----------
+    meteomaps : list of str
+        A list of identifiers or paths for meteorological map stacks. Each entry is used to locate
+        corresponding NetCDF files via a glob pattern.
+    
+    startcheck : str, optional (default='dateBegin')
+        The key in the global dateVar dictionary that specifies the simulation start date.
+
+    Returns:
+    -------
+    None
+        The function modifies global dictionaries (meteofiles, inputcounter, flagmeteo) in-place
+        to store metadata about the processed NetCDF files.
+
+    Raises:
+    ------
+    CWATMFileError
+        - If no NetCDF files are found for a given meteorological map.
+        - If a NetCDF file cannot be opened or read.
+        - If time units in the NetCDF file are not recognized or improperly formatted.
+
+    Called in:
+    ------
+       - readmeteo.py (readmeteo.inital)
+       - environflow.py (environflow.initial)
+
+    as/copilot
     """
 
     end = dateVar['dateEnd']
@@ -913,21 +943,63 @@ def multinetdf(meteomaps, startcheck = 'dateBegin'):
 
 def readmeteodata(name, date, value='None', addZeros = False, zeros = 0.0,mapsscale = True, buffering=False, extendback = False):
     """
-    load stack of maps 1 at each timestamp in netcdf format
+    Loads a single time slice from a NetCDF meteorological map stack and returns it as a compressed 1D array.
 
-    :param name: file name
-    :param date:
-    :param value: if set the name of the parameter is defined
-    :param addZeros:
-    :param zeros: default value
-    :param mapsscale: if meteo maps have the same extend as the other spatial static m
-    :param buffering: if buffer should be applied before cutting the map to the mask extent
-    :return: Compressed 1D array of meteo data
+    This function reads a specific time-indexed map from a NetCDF file associated with a meteorological variable.
+    It handles spatial subsetting, optional buffering, flipping latitude if necessary, and filling missing values.
+    The result is returned as a compressed array suitable for further processing in spatial simulations.
 
-    :raises if data is wrong: :meth:`management_modules.messages.CWATMError`
-    :raises if meteo netcdf file cannot be opened: :meth:`management_modules.messages.CWATMFileError`
+    Parameters
+    ----------
+    name : str
+        File name. Identifier for the meteorological variable or map stack. Used to retrieve file and index metadata.
+    
+    date : datetime.date
+        The current simulation date used for error reporting and leap year handling.
+    
+    value : str, optional (default='None')
+        Name of the variable to extract from the NetCDF file. If 'None', the last variable in the file is used,
+        excluding coordinate variables like 'X', 'Y', 'lon', 'lat', and 'time'.
+    
+    addZeros : bool, optional (default=False)
+        If True, replaces NaN values in the map with the specified `zeros` value.
+    
+    zeros : float, optional (default=0.0)
+        Value to use when filling missing data if `addZeros` is True.
+    
+    mapsscale : bool, optional (default=True)
+        If True, checks that the spatial extent of the meteorological map matches the static mask map.
+    
+    buffering : bool, optional (default=False)
+        If True, applies a 1-pixel buffer around the cut map region, unless the region is at the map edge.
+    
+    extendback : bool, optional (default=False)
+        If True, allows reading from earlier dates using the day-of-year index if the map starts later than the simulation.
+
+    Returns
+    -------
+    mapC : np.ndarray
+        Compressed 1D array of the meteorological data for the given date.
+    buffer : list or None
+        List of buffer flags [top, right, bottom, left] if buffering is applied, otherwise None.
+
+    Raises
+    ------
+    CWATMError
+        - If the map stack metadata is missing or the index is invalid.
+        - If the map starts after the simulation start date and `extendback` is False.
+    CWATMFileError
+        - If the NetCDF file cannot be opened or read.
+    CWATMWarning
+        - If the spatial extent of the map does not match the expected mask size when `mapsscale` is True.
+
+    Called in:
+    -----
+       - readmeteo.py (readmeteo.dynamic); to read runoff, sum_gwRecharge, rootzoneSM, EWRef
+
+    as/copilot
     """
-
+    
     try:
         meteoInfo = meteofiles[name][flagmeteo[name]]
         idx = inputcounter[name]
@@ -1750,11 +1822,32 @@ def checkOption(inBinding):
 
 def cbinding(inBinding):
     """
-    Check if variable in settings file has a counterpart in the source code
+    Check if variable in settings file has a counterpart in the source code.
 
-    :param inBinding: parameter in settings file
+    This function checks whether a given parameter name (`inBinding`) from the settings file 
+    exists in the `binding` dictionary, which maps external configuration keys to internal variable names.
+    If the key is not found, it attempts to suggest the closest match and provides helpful context 
+    by locating the line in the settings file where the closest match appears.
 
-    Not tested because you need to change the name eg PrecipiationMaps = ... -> Precipitation = ...
+    Parameters
+    ----------
+    inBinding : str
+        The name of the parameter as specified in the settings file.
+
+    Returns
+    -------
+    str
+        The corresponding internal variable name from the `binding` dictionary.
+
+    Raises
+    ------
+    CWATMError
+        If the parameter name is not found in the `binding` dictionary. The error message includes:
+        - The name of the missing key
+        - The closest matching key (if any)
+        - The line number and content from the settings file where the closest match appears
+
+    as/copilot
     """
 
     lineclosest = ""
