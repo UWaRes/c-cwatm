@@ -87,7 +87,8 @@ class MeteoForc2Var:
     # --- functions used by read_forcing ---
     def varnames_dict(self):
         """
-
+        self.varsdict - variable names in forcing files
+        self.varsid - optional, str in filename
         """
         if self.fmodel_flag == 'remo':
             self.varsdict = {'runoff':'RUNOFF' ,
@@ -96,6 +97,13 @@ class MeteoForc2Var:
                              'rootzoneSM':'WSECH' ,
                              'lat':'lat' ,
                              'lon':'lon' }
+            self.varsid = {'runoff':'c160' ,
+                           'sum_gwRecharge':'c053' , 
+                           'EWRef':'c064' ,
+                           'rootzoneSM':'c140',
+                           'FCAP':'c105',
+                           'WSMX':'c229'}
+
         else:
             msg = "Error : " +self.fmodel_flag + " is not a valid model name. \n"
             raise CWATMError(msg)
@@ -108,7 +116,7 @@ class MeteoForc2Var:
         if self.fmodel_flag == 'remo':
             # the date format in the REMO filename is YYYYMM
             rdate = ctime.strftime('%Y%m')
-            varnumber = 'c160'
+            varnumber = self.varsid[varflag]
             ffname = self.inpath+infile+'_'+varnumber+'_'+rdate+'.nc'
             return ffname
         else:

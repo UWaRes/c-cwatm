@@ -188,13 +188,12 @@ class readmeteo(object):
         if binding['coupl_flag']=='no_coupl':
             # extract forcing data from Maps (read in initial)
             # read runoff
-            self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.runoff = np.maximum(0., self.var.runoff)
-            print('runoff shape', self.var.runoff.shape)
+            #self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
+            #self.var.runoff = np.maximum(0., self.var.runoff)
     
             # read ground water recharge
-            self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge)
+            #self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
+            #self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge)
             
             # read rootzone soil moisture
             self.var.rootzoneSM, MaskMapBoundary = readmeteodata(self.var.SMMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
@@ -202,39 +201,8 @@ class readmeteo(object):
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e
-            
-        elif binding['coupl_flag']=='offline_coupl':   
-            # for each time step: read forcing file and convert to C-CWatM grid
-            # TODO: replace clat and clon with actual C-CWatM variables
-            meteoforc = MeteoForc2Var(clat,clon,dateVar['currDate'],binding['PathForc'],binding['fmodel_flag'])
-            
-            # read runoff
-            meteoforc.read_forcing('runoff',binding['RunoffName'])
-            meteoforc.regridding('runoff')
-            self.var.runoff = np.maximum(0., meteoforc.runoff)
-            
-            # read ground water recharge
-            meteoforc.read_forcing('sum_gwRecharge',binding['GWName'])
-            meteoforc.regridding('sum_gwRecharge')
-            self.var.sum_gwRecharge = np.maximum(0., meteoforc.sum_gwRecharge)
-
-            # read open water evaporation
-            meteoforc.read_forcing('EWRef',binding['OWEName'])
-            meteoforc.regridding('EWRef')
-            self.var.EWRef = meteoforc.EWRef * self.var.DtDay * self.var.con_e # TODO: check conversion
-
-            # read rootzone soil moisture
-            meteoforc.read_forcing('rootzoneSM',binding['SMName'])
-            meteoforc.regridding('rootzoneSM')
-            self.var.rootzoneSM = np.maximum(0., meteoforc.rootzoneSM)            
-
-            #if returnBool('soilwater_as_fract'):
-            #    # convert soil moisture in percent to soil water content in m 
-            #    soilWaterStorageCap = self.var.ws1[3] + self.var.ws2[3]
-            #    self.var.rootzoneSM = self.var.rootzoneSM * soilWaterStorageCap
-
-                
+            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e          
+             
 
         if Flags['calib']:
             # if first clibration run, store all meteo data in a variable

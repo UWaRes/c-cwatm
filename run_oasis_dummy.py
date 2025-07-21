@@ -183,9 +183,9 @@ meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['f
 # TODO: include in time loop, reload every month
 starttime = binding['TIME-RELATED_CONSTANTS']['StepStart']
 ctime = datetime.datetime.strptime(starttime, '%d/%m/%Y')
-meteoforc.read_forcing(ctime,'runoff',binding['COUPLING']['RunoffName'])
-meteoforc.read_forcing(ctime,'sum_gwRecharge',binding['COUPLING']['GWName'])
-print(meteoforc.runoff.shape)
+#meteoforc.read_forcing(ctime,'runoff',binding['COUPLING']['RunoffName'])
+#meteoforc.read_forcing(ctime,'sum_gwRecharge',binding['COUPLING']['GWName'])
+
 
 
 # -- read grid data of REMO input file---
@@ -244,13 +244,13 @@ w_unit.flush()
 ### OASIS_ENDDEF ###
 comp.enddef()
 
-# -------------------------------------------------------------------
+# -------------- get and put -----------------
 
 # Load forcing data (e.g., NetCDF)
 # maybe read from settings file??
-filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
-ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
-data_array = ds['RUNOFF']  # Replace with your variable name
+#filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
+#ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
+#data_array = ds['RUNOFF']  # Replace with your variable name
 
 #print(lat.shape)
 
@@ -261,15 +261,20 @@ for t in range(5): # same number of time loops as C-CWatM
     seconds_passed = int(t * 86400.)
     print('dummy',seconds_passed)
 
+    currenttime = ctime + datetime.timedelta(seconds=seconds_passed)
+    meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
+    meteoforc.read_forcing(currenttime,'sum_gwRecharge',binding['COUPLING']['GWName'])
+    
     # Extract data for current timestep
-    data_t = data_array.isel(time=t).values #/ 100.
+    #data_t = data_array.isel(time=t).values #/ 100.
+    #data_t = meteoforc.runoff.values
 
     # send (and get data), see atmos.py example
     # include dummy send and put also in ccwatm
     #var_id[0].put(seconds_passed, data_t[::-1,:])
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
-    var_id[0].put(seconds_passed, data_t)
-    var_id[1].put(seconds_passed, data_t)
+    var_id[0].put(seconds_passed, meteoforc.runoff.values/100.)
+    var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values/1000.)
 
 # Finalize
 del comp

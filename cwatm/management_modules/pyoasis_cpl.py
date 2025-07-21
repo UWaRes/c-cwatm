@@ -189,20 +189,29 @@ class pyoasis_cpl(object):
         self.oasisvar_id[1].get(seconds_passed, field_recv_gwRecharge)
         
 
-        mapnp1 = np.ma.masked_array(field_recv_runoff.T[:,::-1], maskinfo['mask']) # this gives non-zero output
-        print('recv shape:',field_recv_runoff.shape)
-        print('mask shape:',maskinfo['mask'].shape)
-        self.var.oasisdummy = np.ma.compressed(mapnp1)
+        #mapnp1 = np.ma.masked_array(field_recv_runoff.T[:,::-1], maskinfo['mask']) # this gives non-zero output
+        #print('recv shape:',field_recv_runoff.shape)
+        #print('mask shape:',maskinfo['mask'].shape)
+        #self.var.oasisdummy = np.ma.compressed(mapnp1)
 
+        
+        # write to cwatm variables
+        mapnp1 = np.ma.masked_array(field_recv_runoff, maskinfo['mask'])
+        mapnp1 = np.ma.compressed(mapnp1)
+        self.var.runoff = np.maximum(0., mapnp1)
 
-        nf1 = Dataset('test_dummy.nc', 'w', format='NETCDF4')
-        row,col = field_recv_runoff.shape
-        lat = nf1.createDimension('lat',row)
-        lon = nf1.createDimension('lon',col)
+        mapnp1 = np.ma.masked_array(field_recv_gwRecharge, maskinfo['mask'])
+        mapnp1 = np.ma.compressed(mapnp1)
+        self.var.sum_gwRecharge = np.maximum(0., mapnp1)
+
+        #nf1 = Dataset('test_dummy.nc', 'w', format='NETCDF4')
+        #row,col = field_recv_runoff.shape
+        #lat = nf1.createDimension('lat',row)
+        #lon = nf1.createDimension('lon',col)
         #nf1.createDimension('time', 5)
-        value = nf1.createVariable('dummyvar', 'f4', ('lat', 'lon'), zlib=True, fill_value=1e20,chunksizes=(row,col))
-        nf1.variables['dummyvar'][:, :] = field_recv_runoff
-        nf1.close()
+        #value = nf1.createVariable('dummyvar', 'f4', ('lat', 'lon'), zlib=True, fill_value=1e20,chunksizes=(row,col))
+        #nf1.variables['dummyvar'][:, :] = field_recv_runoff
+        #nf1.close()
 
         # 2) put
 
