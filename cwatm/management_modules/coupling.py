@@ -52,10 +52,10 @@ class MeteoForc2Var:
         datavar = data_for_date[forc_varname]
         setattr(self, varflag, datavar)
 
-        if self.fmodel_flag == 'remo' and varflag=='rootzoneSM':
-            # read additional variables required for soil moisture conversion
-            setattr(self, 'FCAP', data_for_date['FCAP'])           
-            setattr(self, 'WSMX', data_for_date['WSMX'])  
+        #if self.fmodel_flag == 'remo' and varflag=='rootzoneSM':
+        #    # read additional variables required for soil moisture conversion
+        #    setattr(self, 'FCAP', data_for_date['FCAP'])           
+        #    setattr(self, 'WSMX', data_for_date['WSMX'])  
 
         # get coordinates
         self.forclat = data_for_date[self.varsdict['lat']].values
@@ -94,7 +94,7 @@ class MeteoForc2Var:
             self.varsdict = {'runoff':'RUNOFF' ,
                              'sum_gwRecharge':'DRAIN' , 
                              'EWRef':'EVAPW' ,
-                             'rootzoneSM':'WSECH' ,
+                             'rootzoneSM':'WS' ,
                              'lat':'lat' ,
                              'lon':'lon' }
             self.varsid = {'runoff':'c160' ,

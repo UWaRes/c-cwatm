@@ -55,8 +55,7 @@ class CWATModel_dyn(DynamicModel):
 
         # as: dynamic oasis coupling    
         # TODO: at which position?    
-        #if binding['coupl_flag']=='full_coupl':
-        if binding['coupl_flag']=='no_coupl': # for testing
+        if binding['coupl_flag']=='oasis_coupl':
             self.pyoasis_cpl_module.dynamic()  
 
         if Flags['calib']:
@@ -82,7 +81,6 @@ class CWATModel_dyn(DynamicModel):
         # ***** Groundwater ****************
         self.groundwater_module.dynamic()
         timemeasure("Groundwater")  # 2. timing
-
         # ***** Small Lakes and Reservoirs****************
         self.lakes_res_small_module.dynamic()
         timemeasure("Small lakes")  # 3. timing

@@ -146,7 +146,7 @@ class readmeteo(object):
         elif binding['coupl_flag']=='oasis_coupl':  
             # check if oasis has been initialized
             # oasisvar_id should contain at least the 4 forcing variables
-            if len(self.oasisvar_id) < 4:
+            if len(self.var.oasisvar_id) < 4:
                 # TODO: raise error
                 print('Not all 4 required forcing variables are exchanged via OASIS.')
             else:
@@ -188,12 +188,12 @@ class readmeteo(object):
         if binding['coupl_flag']=='no_coupl':
             # extract forcing data from Maps (read in initial)
             # read runoff
-            #self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            #self.var.runoff = np.maximum(0., self.var.runoff)
+            self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
+            self.var.runoff = np.maximum(0., self.var.runoff)
     
             # read ground water recharge
-            #self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            #self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge)
+            self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
+            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge)
             
             # read rootzone soil moisture
             self.var.rootzoneSM, MaskMapBoundary = readmeteodata(self.var.SMMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
@@ -201,7 +201,7 @@ class readmeteo(object):
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e          
+            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e     
              
 
         if Flags['calib']:

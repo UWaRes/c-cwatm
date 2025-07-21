@@ -102,8 +102,8 @@ class CWATModel_ini(DynamicModel):
         self.lakes_reservoirs_module = lakes_reservoirs(self)
 
         # as: OASIS3-MCT coupler
-        #if binding['coupl_flag']=='full_coupl':
-        if binding['coupl_flag']=='no_coupl': # for testing
+        if binding['coupl_flag']=='oasis_coupl':
+        #if binding['coupl_flag']=='no_coupl': # for testing
             from cwatm.management_modules.pyoasis_cpl import pyoasis_cpl
             self.pyoasis_cpl_module = pyoasis_cpl(self)
 
@@ -145,9 +145,9 @@ class CWATModel_ini(DynamicModel):
 
         # TODO: delete after testing
         # as: initialize oasis coupling        
-        #if binding['coupl_flag']=='full_coupl':
-        if binding['coupl_flag']=='no_coupl': # for testing
-            self.pyoasis_cpl_module.initial()    
+        #if binding['coupl_flag']=='oasis_coupl':
+        #if binding['coupl_flag']=='no_coupl': # for testing
+        #    self.pyoasis_cpl_module.initial()    
 
 
 

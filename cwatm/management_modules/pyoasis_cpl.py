@@ -156,13 +156,14 @@ class pyoasis_cpl(object):
         oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid')
 
         # 4) declaration of coupling fields
-        numcouple = 2 # number of coupling fields
-        self.oasisvar_id = [None] * numcouple
-        #self.oasisvar_id[0] = pyoasis.Var("FIELD_RECV_hydro", self.partition, OASIS.IN)
-        self.oasisvar_id[0] = pyoasis.Var("ccwatm_recv_runoff", self.partition, OASIS.IN)
-        self.oasisvar_id[1] = pyoasis.Var("ccwatm_recv_gwRecharge", self.partition, OASIS.IN)
+        numcouple = 4 # number of coupling fields
+        self.var.oasisvar_id = [None] * numcouple
+        self.var.oasisvar_id[0] = pyoasis.Var("ccwatm_recv_runoff", self.partition, OASIS.IN)
+        self.var.oasisvar_id[1] = pyoasis.Var("ccwatm_recv_gwRecharge", self.partition, OASIS.IN)
+        self.var.oasisvar_id[2] = pyoasis.Var("ccwatm_recv_EWRef", self.partition, OASIS.IN)
+        self.var.oasisvar_id[3] = pyoasis.Var("ccwatm_recv_rootzoneSM", self.partition, OASIS.IN)
         
-        print(f' self.oasisvar_id FIELD_RECV_hydro, {self.oasisvar_id[0]._id}', file=self.w_unit)
+        print(f' self.var.oasisvar_id FIELD_RECV_hydro, {self.var.oasisvar_id[0]._id}', file=self.w_unit)
         self.w_unit.flush()
         # TODO: repeat for all 4 forcing variables (also in namcouple)
 
@@ -181,39 +182,41 @@ class pyoasis_cpl(object):
         seconds_passed = int((dateVar['currDate'] - dateVar['dateStart']).total_seconds())
         print('C-CWatM time loop',seconds_passed, file=self.w_unit)
         self.w_unit.flush()
-        # 1) get
-        # runoff
+        
+        # ----- 1) get -----
         field_recv_runoff = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
-        self.oasisvar_id[0].get(seconds_passed, field_recv_runoff)
+        self.var.oasisvar_id[0].get(seconds_passed, field_recv_runoff)
         field_recv_gwRecharge = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
-        self.oasisvar_id[1].get(seconds_passed, field_recv_gwRecharge)
-        
-
-        #mapnp1 = np.ma.masked_array(field_recv_runoff.T[:,::-1], maskinfo['mask']) # this gives non-zero output
-        #print('recv shape:',field_recv_runoff.shape)
-        #print('mask shape:',maskinfo['mask'].shape)
-        #self.var.oasisdummy = np.ma.compressed(mapnp1)
+        self.var.oasisvar_id[1].get(seconds_passed, field_recv_gwRecharge)
+        field_recv_EWRef = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
+        self.var.oasisvar_id[2].get(seconds_passed, field_recv_EWRef)
+        field_recv_rootzoneSM = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
+        self.var.oasisvar_id[3].get(seconds_passed, field_recv_rootzoneSM)
 
         
-        # write to cwatm variables
-        mapnp1 = np.ma.masked_array(field_recv_runoff, maskinfo['mask'])
+        # --- write to cwatm variables ---
+        mapnp1 = np.ma.masked_array(field_recv_runoff.T[::-1,:], maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.runoff = np.maximum(0., mapnp1)
 
-        mapnp1 = np.ma.masked_array(field_recv_gwRecharge, maskinfo['mask'])
+        mapnp1 = np.ma.masked_array(field_recv_gwRecharge.T[::-1,:], maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.sum_gwRecharge = np.maximum(0., mapnp1)
 
-        #nf1 = Dataset('test_dummy.nc', 'w', format='NETCDF4')
-        #row,col = field_recv_runoff.shape
-        #lat = nf1.createDimension('lat',row)
-        #lon = nf1.createDimension('lon',col)
-        #nf1.createDimension('time', 5)
-        #value = nf1.createVariable('dummyvar', 'f4', ('lat', 'lon'), zlib=True, fill_value=1e20,chunksizes=(row,col))
-        #nf1.variables['dummyvar'][:, :] = field_recv_runoff
-        #nf1.close()
+        # TODO: comment
+        mapnp1 = np.ma.masked_array(field_recv_EWRef.T[::-1,:], maskinfo['mask'])
+        mapnp1 = np.ma.compressed(mapnp1)
+        self.var.EWRef = mapnp1 * self.var.DtDay * self.var.con_e
 
-        # 2) put
+        # TODO: check conversion and comment
+        mapnp1 = np.ma.masked_array(field_recv_rootzoneSM.T[::-1,:], maskinfo['mask'])
+        mapnp1 = np.ma.compressed(mapnp1)
+        self.var.rootzoneSM = np.maximum(0., mapnp1)
+
+
+        # ----- 2) put -----
+
+        # -> TODO: irrigation water
 
 
 

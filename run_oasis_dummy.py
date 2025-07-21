@@ -180,12 +180,9 @@ binding = parse_settings_file('settings_CCWatM_5min_example.ini')
 meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
 
 # read monthly files
-# TODO: include in time loop, reload every month
+# TODO: reload every month
 starttime = binding['TIME-RELATED_CONSTANTS']['StepStart']
 ctime = datetime.datetime.strptime(starttime, '%d/%m/%Y')
-#meteoforc.read_forcing(ctime,'runoff',binding['COUPLING']['RunoffName'])
-#meteoforc.read_forcing(ctime,'sum_gwRecharge',binding['COUPLING']['GWName'])
-
 
 
 # -- read grid data of REMO input file---
@@ -228,12 +225,16 @@ oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input.T,par
 
 # Define the variable to send
 #forcing_var = oasis.def_var("FORCING_FIELD", oasis.OUT)
+
 #  DECLARATION OF THE COUPLING FIELDS
 ################## OASIS_DEF_VAR #################################
-var_id = [None]*2
+numcouple = 4 # number of coupling fields
+var_id = [None] * numcouple
 # TODO -> "FIELD_RECV_ATM" needs to be declared in namcouple file
 var_id[0] = pyoasis.Var("FIELD_SEND_runoff", partition, OASIS.OUT)
 var_id[1] = pyoasis.Var("FIELD_SEND_gwRecharge", partition, OASIS.OUT)
+var_id[2] = pyoasis.Var("FIELD_SEND_EWRef", partition, OASIS.OUT)
+var_id[3] = pyoasis.Var("FIELD_SEND_rootzoneSM", partition, OASIS.OUT)
 print(f' var_id FRECVATM, {var_id[0]._id}', file=w_unit)
 w_unit.flush()
 
@@ -252,6 +253,10 @@ comp.enddef()
 #ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
 #data_array = ds['RUNOFF']  # Replace with your variable name
 
+ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c105.nc')
+FCAP = np.squeeze(ds['FCAP'].values)
+ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c229.nc')
+WSMX = np.squeeze(ds['WSMX'].values)
 #print(lat.shape)
 
 # Time loop
@@ -264,6 +269,11 @@ for t in range(5): # same number of time loops as C-CWatM
     currenttime = ctime + datetime.timedelta(seconds=seconds_passed)
     meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
     meteoforc.read_forcing(currenttime,'sum_gwRecharge',binding['COUPLING']['GWName'])
+    meteoforc.read_forcing(currenttime,'EWRef',binding['COUPLING']['OWEName'])
+    meteoforc.read_forcing(currenttime,'rootzoneSM',binding['COUPLING']['SMName'])
+    # note: this is in percent, 
+    # needs to be multiplied with soilWaterStorageCap later
+    meteoforc.rootzoneSM = meteoforc.rootzoneSM * FCAP / WSMX
     
     # Extract data for current timestep
     #data_t = data_array.isel(time=t).values #/ 100.
@@ -275,6 +285,8 @@ for t in range(5): # same number of time loops as C-CWatM
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
     var_id[0].put(seconds_passed, meteoforc.runoff.values/100.)
     var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values/1000.)
+    var_id[2].put(seconds_passed, meteoforc.EWRef.values)
+    var_id[3].put(seconds_passed, meteoforc.rootzoneSM.values)
 
 # Finalize
 del comp
