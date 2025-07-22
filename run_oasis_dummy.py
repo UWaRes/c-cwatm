@@ -173,38 +173,48 @@ def parse_settings_file(filepath):
     return settings
 
 # -- get data path from settings file ---
-#starttime = time.time()
+
 binding = parse_settings_file('settings_CCWatM_5min_example.ini')
-#print(time.time()-starttime)
-#print('Keys:',list(binding['COUPLING'].keys()))
+
 meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
 
 # read monthly files
 # TODO: reload every month
-starttime = binding['TIME-RELATED_CONSTANTS']['StepStart']
-ctime = datetime.datetime.strptime(starttime, '%d/%m/%Y')
+startdate = binding['TIME-RELATED_CONSTANTS']['StepStart']
+enddate = binding['TIME-RELATED_CONSTANTS']['StepEnd']
+starttime = datetime.datetime.strptime(startdate, '%d/%m/%Y')
+endtime = datetime.datetime.strptime(enddate, '%d/%m/%Y')
+simulated_days = (endtime-starttime+datetime.timedelta(days=1)) / datetime.timedelta(days=1)
+#meteoforc.read_forcing(starttime,'runoff',binding['COUPLING']['RunoffName'])
+
+
+ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c105.nc')
+FCAP = np.squeeze(ds['FCAP'].values)
+ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c229.nc')
+WSMX = np.squeeze(ds['WSMX'].values)
+gridfile = ds.copy()
 
 
 # -- read grid data of REMO input file---
-filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
-ds = xr.open_dataset(filepath+'e100001n_c140_200001.nc')
-lon_2d = ds['lon'].values.T
-lat_2d = ds['lat'].values.T
+#filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
+#ds = xr.open_dataset(filepath+'e100001n_c140_200001.nc')
+lon_2d = gridfile['lon'].values.T
+lat_2d = gridfile['lat'].values.T
 nlon_forcing = lon_2d.shape[0]
 nlat_forcing = lon_2d.shape[1]
 
 # --- derive grid corners ---
-lat_rot,lon_rot = np.meshgrid(ds['rlat'].values,ds['rlon'].values)
+lat_rot,lon_rot = np.meshgrid(gridfile['rlat'].values,gridfile['rlon'].values)
 rlon_corners,rlat_corners = calc_rotgrid_corners(lon_rot,lat_rot)
 
-rot_pole_lon = ds.rotated_latitude_longitude.grid_north_pole_longitude
-rot_pole_lat = ds.rotated_latitude_longitude.grid_north_pole_latitude
+rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
+rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
 grid_clon = unrot_lon(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
 grid_clat = unrot_lat(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
 
 # TODO: create coordinate and landmask file to be provided with C-CWatM
 # get landmask from soil water data
-landmask_input = ds['WS'][0,:,:].values
+landmask_input = gridfile['WSMX'][0,:,:].values
 landmask_input[landmask_input>0] = 1 
 
 # TODO: put in function?
@@ -245,7 +255,7 @@ w_unit.flush()
 ### OASIS_ENDDEF ###
 comp.enddef()
 
-# -------------- get and put -----------------
+# ----- Time loop -----
 
 # Load forcing data (e.g., NetCDF)
 # maybe read from settings file??
@@ -253,20 +263,17 @@ comp.enddef()
 #ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
 #data_array = ds['RUNOFF']  # Replace with your variable name
 
-ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c105.nc')
-FCAP = np.squeeze(ds['FCAP'].values)
-ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c229.nc')
-WSMX = np.squeeze(ds['WSMX'].values)
-#print(lat.shape)
+#lastmonth = starttime.month
 
-# Time loop
-#nt = data_array.sizes['time']
-
-for t in range(5): # same number of time loops as C-CWatM
+for t in np.arange(simulated_days): 
     seconds_passed = int(t * 86400.)
     print('dummy',seconds_passed)
 
-    currenttime = ctime + datetime.timedelta(seconds=seconds_passed)
+    currenttime = starttime + datetime.timedelta(seconds=seconds_passed)
+    #if currenttime.month != lastmonth:
+    #    meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
+    #    lastmonth = currenttime.month
+    
     meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
     meteoforc.read_forcing(currenttime,'sum_gwRecharge',binding['COUPLING']['GWName'])
     meteoforc.read_forcing(currenttime,'EWRef',binding['COUPLING']['OWEName'])
@@ -274,11 +281,8 @@ for t in range(5): # same number of time loops as C-CWatM
     # note: this is in percent, 
     # needs to be multiplied with soilWaterStorageCap later
     meteoforc.rootzoneSM = meteoforc.rootzoneSM * FCAP / WSMX
-    
-    # Extract data for current timestep
-    #data_t = data_array.isel(time=t).values #/ 100.
-    #data_t = meteoforc.runoff.values
 
+    # -------------- get and put -----------------
     # send (and get data), see atmos.py example
     # include dummy send and put also in ccwatm
     #var_id[0].put(seconds_passed, data_t[::-1,:])

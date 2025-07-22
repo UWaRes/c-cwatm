@@ -11,20 +11,19 @@
 import xarray as xr
 import math
 import datetime
+import os
 #from scipy.interpolate import griddata
 
+from cwatm.management_modules.messages import *
+
 class MeteoForc2Var:
-    #def __init__(self,clat,clon,ctime,inpath,fmodel_flag):
     def __init__(self,inpath,fmodel_flag):
         """
-        fmodel_flag : 'remo' (add others later) model used for meteorological forcing
+        fmodel_flag : 'remo' (add others later) model/data used for meteorological forcing
         """
-        #self.clat = clat   # 1D array of CWatM latitudes
-        #self.clon = clon   # 1D array of CWatM longitudes
-        #self.ctime = ctime   # time at current CWatM step
         self.inpath = inpath   # path where forcing data are stored 
         self.fmodel_flag = fmodel_flag
-        # get variable names for specified model
+        # get variable names (and filenames) for specified model
         self.varnames_dict()
 
     def read_forcing(self,ctime,varflag,infile):
@@ -32,56 +31,40 @@ class MeteoForc2Var:
         Read climate model output file with forcing data
         varflag : 'runoff', 'sum_gwRecharge', 'rootzoneSM' or 'EWRef'
         infile : given in settings file
+
+        raises cwatmerror if file does not exist
+        
         """
 
         # read dataset
-        # TODO: check if exists first??
         forc_filename = self.get_filename(ctime,varflag,infile)
-        print(forc_filename)
-        ds = xr.open_dataset(forc_filename)  
+
+        if not(os.path.exists(forc_filename)):
+            msg = "Error : File " +forc_filename + " does not exist. \n"
+            raise CWATMError(msg)
+            # TODO: both coupled models need to exit!!
+
+        try:
+            # check if data is already loaded
+            ds = getattr(self, varflag+'_infile')
+        
+        except (KeyError, AttributeError):
+            # otherwise: load file
+            ds = xr.open_dataset(forc_filename)  
+        
+            if self.fmodel_flag == 'remo':
+                # convert time format for REMO forcing
+                ds = parse_dates(ds)
+
+            setattr(self, varflag+'_infile', ds)
 
         # select data for specified date 
-        if self.fmodel_flag == 'remo':
-            # convert time format for REMO forcing
-            ds = parse_dates(ds)
-        
         data_for_date = ds.sel(time=ctime)
         
         # get variable
         forc_varname = self.varsdict[varflag]
         datavar = data_for_date[forc_varname]
         setattr(self, varflag, datavar)
-
-        #if self.fmodel_flag == 'remo' and varflag=='rootzoneSM':
-        #    # read additional variables required for soil moisture conversion
-        #    setattr(self, 'FCAP', data_for_date['FCAP'])           
-        #    setattr(self, 'WSMX', data_for_date['WSMX'])  
-
-        # get coordinates
-        self.forclat = data_for_date[self.varsdict['lat']].values
-        self.forclon = data_for_date[self.varsdict['lon']].values
-    
-    def regridding(self,varflag):
-        """
-        Convert a 2D forcing variable to a C-CWatM 2D variable.
-        """
-        pass
-        # convert units if necessary
-        #self.convert_units(varflag)
-
-        # prepare coordinates
-        #if self.fmodel_flag == 'remo':
-        #    # remo has an unstructured grid with 2d coordinates
-        #    forclat_flat = self.forclat.flatten()
-        #    forclon_flat = self.forclon.flatten()
-        #forcdata_flat = getattr(self,varflag).values.flatten()
-        #clon_mesh, clat_mesh = np.meshgrid(self.clon, self.clat)
-        
-        # interpolate
-        # TODO: check methods, mask nans?
-        # TODO: find more time efficient function
-        #interpolated_data = griddata((forclat_flat, forclon_flat), forcdata_flat, (clat_mesh, clon_mesh), method='linear')
-        #setattr(self, varflag, interpolated_data)
 
     
     # --- functions used by read_forcing ---
@@ -94,16 +77,13 @@ class MeteoForc2Var:
             self.varsdict = {'runoff':'RUNOFF' ,
                              'sum_gwRecharge':'DRAIN' , 
                              'EWRef':'EVAPW' ,
-                             'rootzoneSM':'WS' ,
-                             'lat':'lat' ,
-                             'lon':'lon' }
+                             'rootzoneSM':'WS'}
             self.varsid = {'runoff':'c160' ,
                            'sum_gwRecharge':'c053' , 
                            'EWRef':'c064' ,
                            'rootzoneSM':'c140',
                            'FCAP':'c105',
                            'WSMX':'c229'}
-
         else:
             msg = "Error : " +self.fmodel_flag + " is not a valid model name. \n"
             raise CWATMError(msg)
@@ -116,36 +96,14 @@ class MeteoForc2Var:
         if self.fmodel_flag == 'remo':
             # the date format in the REMO filename is YYYYMM
             rdate = ctime.strftime('%Y%m')
+            ryear = ctime.strftime('%Y')
             varnumber = self.varsid[varflag]
-            ffname = self.inpath+infile+'_'+varnumber+'_'+rdate+'.nc'
+            ffname = self.inpath+'/'+ryear+'/'+infile+'_'+varnumber+'_'+rdate+'.nc'
             return ffname
         else:
             msg = "Error : " + self.fmodel_flag + " is not a valid model name. \n"
             raise CWATMError(msg)
 
-    # --- functions used by regridding ---
-    def convert_units(self,varflag):
-        """
-        Convert forcing data to match the required units. These are [m/day] for all
-        runoff, sum_gwRecharge, EWRef, rootzoneSM
-        """
-        if self.fmodel_flag == 'remo':
-            # runoff: mm to m/day - 0.001
-            # sum_gwRecharge: mm/day to m/day - 0.001
-            # EWRef: mm/day to m/day - 0.001
-            # rootzoneSM: WSECH*FCAP/WSMX; m/m/day to (m/day)
-            if varflag in ['runoff', 'sum_gwRecharge', 'EWRef']:
-                varconv = getattr(self,varflag) * 0.001
-                setattr(self, varflag, varconv)
-            elif varflag=='rootzoneSM':
-                # note: this is in percent, 
-                # needs to be multiplied with soilWaterStorageCap later
-                self.rootzoneSM = self.rootzoneSM * self.FCAP / self.WSMX
-            else:
-                pass
-        else:
-            msg = "Error : " + self.fmodel_flag + " is not a valid model name. \n"
-            raise CWATMError(msg)
            
 
 # ----- functions used for 'remo' -----
