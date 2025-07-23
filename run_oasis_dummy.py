@@ -79,9 +79,7 @@ def calc_rotgrid_corners(rlon,rlat):
     rlat_corners[:,:,3] = rlat + deltalat/2. 
 
     return rlon_corners, rlat_corners
-
-
-#unrot_lon(rlat_corners[0,:], rlon_corners[0,:], ds.rotated_latitude_longitude.grid_north_pole_latitude, ds.rotated_latitude_longitude.grid_north_pole_longitude)
+    
 
 # --- functions for grid cell area ---
 
@@ -146,8 +144,10 @@ def spherical_polygon_area(coords, radius=1.0):
     # Scale by radius squared if needed (e.g. Earth: radius=6371e3 for meters)
     return np.abs(total_area * radius ** 2)
 
-# get values from settingsfile
 def parse_settings_file(filepath):
+    """
+    get values from settingsfile
+    """
     settings = {}
     current_section = None
     with open(filepath, 'r') as f:
@@ -175,25 +175,20 @@ def parse_settings_file(filepath):
 # -- get data path from settings file ---
 
 binding = parse_settings_file('settings_CCWatM_5min_example.ini')
-
 meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
 
 # read monthly files
-# TODO: reload every month
 startdate = binding['TIME-RELATED_CONSTANTS']['StepStart']
 enddate = binding['TIME-RELATED_CONSTANTS']['StepEnd']
 starttime = datetime.datetime.strptime(startdate, '%d/%m/%Y')
 endtime = datetime.datetime.strptime(enddate, '%d/%m/%Y')
 simulated_days = (endtime-starttime+datetime.timedelta(days=1)) / datetime.timedelta(days=1)
-#meteoforc.read_forcing(starttime,'runoff',binding['COUPLING']['RunoffName'])
-
 
 ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c105.nc')
 FCAP = np.squeeze(ds['FCAP'].values)
 ds = xr.open_dataset('/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/e100001n_c229.nc')
 WSMX = np.squeeze(ds['WSMX'].values)
 gridfile = ds.copy()
-
 
 # -- read grid data of REMO input file---
 #filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
@@ -203,19 +198,20 @@ lat_2d = gridfile['lat'].values.T
 nlon_forcing = lon_2d.shape[0]
 nlat_forcing = lon_2d.shape[1]
 
-# --- derive grid corners ---
-lat_rot,lon_rot = np.meshgrid(gridfile['rlat'].values,gridfile['rlon'].values)
-rlon_corners,rlat_corners = calc_rotgrid_corners(lon_rot,lat_rot)
-
-rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
-rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
-grid_clon = unrot_lon(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
-grid_clat = unrot_lat(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
-
 # TODO: create coordinate and landmask file to be provided with C-CWatM
 # get landmask from soil water data
 landmask_input = gridfile['WSMX'][0,:,:].values
 landmask_input[landmask_input>0] = 1 
+
+# --- derive grid corners ---
+#lat_rot,lon_rot = np.meshgrid(gridfile['rlat'].values,gridfile['rlon'].values)
+#rlon_corners,rlat_corners = calc_rotgrid_corners(lon_rot,lat_rot)
+
+#rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
+#rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
+#grid_clon = unrot_lon(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
+#grid_clat = unrot_lat(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
+
 
 # TODO: put in function?
 # --- 1) Initialization ---
@@ -230,11 +226,7 @@ print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min
 print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=w_unit)
 w_unit.flush()
 # function for writing oasis grid information
-#oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input.T,partition,'forcing_grid',grid_clon,grid_clat)
 oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input.T,partition,'forcing_grid')
-
-# Define the variable to send
-#forcing_var = oasis.def_var("FORCING_FIELD", oasis.OUT)
 
 #  DECLARATION OF THE COUPLING FIELDS
 ################## OASIS_DEF_VAR #################################
@@ -257,22 +249,11 @@ comp.enddef()
 
 # ----- Time loop -----
 
-# Load forcing data (e.g., NetCDF)
-# maybe read from settings file??
-#filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
-#ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
-#data_array = ds['RUNOFF']  # Replace with your variable name
-
-#lastmonth = starttime.month
-
 for t in np.arange(simulated_days): 
     seconds_passed = int(t * 86400.)
     print('dummy',seconds_passed)
 
     currenttime = starttime + datetime.timedelta(seconds=seconds_passed)
-    #if currenttime.month != lastmonth:
-    #    meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
-    #    lastmonth = currenttime.month
     
     meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
     meteoforc.read_forcing(currenttime,'sum_gwRecharge',binding['COUPLING']['GWName'])
@@ -283,8 +264,6 @@ for t in np.arange(simulated_days):
     meteoforc.rootzoneSM = meteoforc.rootzoneSM * FCAP / WSMX
 
     # -------------- get and put -----------------
-    # send (and get data), see atmos.py example
-    # include dummy send and put also in ccwatm
     #var_id[0].put(seconds_passed, data_t[::-1,:])
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
     var_id[0].put(seconds_passed, meteoforc.runoff.values/100.)

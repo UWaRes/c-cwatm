@@ -823,30 +823,27 @@ def multinetdf(meteomaps, startcheck = 'dateBegin'):
     It populates global dictionaries (meteofiles, inputcounter, flagmeteo) with relevant
     metadata for further use in the simulation workflow.
 
-    Parameters:
+    Parameters
     ----------
-    meteomaps : list of str
-        A list of identifiers or paths for meteorological map stacks. Each entry is used to locate
-        corresponding NetCDF files via a glob pattern.
-    
-    startcheck : str, optional (default='dateBegin')
-        The key in the global dateVar dictionary that specifies the simulation start date.
+    meteomaps (list of str) : A list of identifiers or paths for meteorological map stacks. Each 
+            entry is used to locate corresponding NetCDF files via a glob pattern.
+    Optional:        
+    startcheck (str) : The key in the global dateVar dictionary that specifies the simulation start date.
 
-    Returns:
+    Returns
     -------
-    None
-        The function modifies global dictionaries (meteofiles, inputcounter, flagmeteo) in-place
-        to store metadata about the processed NetCDF files.
+    None : The function modifies global dictionaries (meteofiles, inputcounter, flagmeteo) in-place to 
+            store metadata about the processed NetCDF files.
 
-    Raises:
+    Raises
     ------
     CWATMFileError
         - If no NetCDF files are found for a given meteorological map.
         - If a NetCDF file cannot be opened or read.
         - If time units in the NetCDF file are not recognized or improperly formatted.
 
-    Called in:
-    ------
+    Called in
+    ---------
        - readmeteo.py (readmeteo.inital)
        - environflow.py (environflow.initial)
 
@@ -951,37 +948,21 @@ def readmeteodata(name, date, value='None', addZeros = False, zeros = 0.0,mapssc
 
     Parameters
     ----------
-    name : str
-        File name. Identifier for the meteorological variable or map stack. Used to retrieve file and index metadata.
-    
-    date : datetime.date
-        The current simulation date used for error reporting and leap year handling.
-    
-    value : str, optional (default='None')
-        Name of the variable to extract from the NetCDF file. If 'None', the last variable in the file is used,
-        excluding coordinate variables like 'X', 'Y', 'lon', 'lat', and 'time'.
-    
-    addZeros : bool, optional (default=False)
-        If True, replaces NaN values in the map with the specified `zeros` value.
-    
-    zeros : float, optional (default=0.0)
-        Value to use when filling missing data if `addZeros` is True.
-    
-    mapsscale : bool, optional (default=True)
-        If True, checks that the spatial extent of the meteorological map matches the static mask map.
-    
-    buffering : bool, optional (default=False)
-        If True, applies a 1-pixel buffer around the cut map region, unless the region is at the map edge.
-    
-    extendback : bool, optional (default=False)
-        If True, allows reading from earlier dates using the day-of-year index if the map starts later than the simulation.
+    name (str) : File name. Identifier for the meteorological variable or map stack. 
+    date (datetime.date) : The current simulation date used for error reporting and leap year handling.
+    Optional :
+    value (str): Name of the variable to extract from the NetCDF file. 
+            If 'None', the last data variable in the file is used.
+    addZeros (bool): If True, replaces NaN values with the specified `zeros` value.
+    zeros (float): Value to use when filling missing data if `addZeros` is True.
+    mapsscale (bool) : If True, checks that the spatial extent of the meteorological map matches the static mask map.
+    buffering (bool) : If True, applies a 1-pixel buffer around the cut map region, unless the region is at the map edge.
+    extendback (bool) : If True, read from earlier dates using the day-of-year index if the map starts later than the simulation.
 
     Returns
     -------
-    mapC : np.ndarray
-        Compressed 1D array of the meteorological data for the given date.
-    buffer : list or None
-        List of buffer flags [top, right, bottom, left] if buffering is applied, otherwise None.
+    mapC (np.ndarray) : Compressed 1D array of the meteorological data for the given date.
+    buffer (list or None) : List of buffer flags [top, right, bottom, left] if buffering is applied, otherwise None.
 
     Raises
     ------
@@ -993,8 +974,8 @@ def readmeteodata(name, date, value='None', addZeros = False, zeros = 0.0,mapssc
     CWATMWarning
         - If the spatial extent of the map does not match the expected mask size when `mapsscale` is True.
 
-    Called in:
-    -----
+    Called in
+    ---------
        - readmeteo.py (readmeteo.dynamic); to read runoff, sum_gwRecharge, rootzoneSM, EWRef
 
     as/copilot
@@ -1831,21 +1812,16 @@ def cbinding(inBinding):
 
     Parameters
     ----------
-    inBinding : str
-        The name of the parameter as specified in the settings file.
+    inBinding (str) : The name of the parameter as specified in the settings file.
 
     Returns
     -------
-    str
-        The corresponding internal variable name from the `binding` dictionary.
+    str : The corresponding internal variable name from the `binding` dictionary.
 
     Raises
     ------
     CWATMError
-        If the parameter name is not found in the `binding` dictionary. The error message includes:
-        - The name of the missing key
-        - The closest matching key (if any)
-        - The line number and content from the settings file where the closest match appears
+        - If the parameter name is not found in the `binding` dictionary. The error message includes:
 
     as/copilot
     """

@@ -17,10 +17,28 @@ import os
 from cwatm.management_modules.messages import *
 
 class MeteoForc2Var:
+    """
+    A class to handle meteorological forcing data from climate models.
+    Called by the run_read_forcing_modelflag.py model coupled with oasis.
+
+    Attributes
+    ----------
+        inpath (str): Path to the directory containing forcing data files.
+        fmodel_flag (str): Identifier for the climate model used (e.g., 'remo').
+        varsdict (dict): Mapping of variable flags to variable names in the dataset.
+        Optional:
+        varsid (dict): Mapping of variable flags to identifier strings used in filenames.
+    """
     def __init__(self,inpath,fmodel_flag):
         """
-        fmodel_flag : 'remo' (add others later) model/data used for meteorological forcing
+        Parameters
+        ----------
+        inpath (str): Path to the directory containing forcing data files.
+        fmodel_flag (str): Model identifier.
+            List of valid model identifiers:
+                - 'remo' : REMO model output; monthly files of daily values; yearly folders 
         """
+
         self.inpath = inpath   # path where forcing data are stored 
         self.fmodel_flag = fmodel_flag
         # get variable names (and filenames) for specified model
@@ -28,21 +46,28 @@ class MeteoForc2Var:
 
     def read_forcing(self,ctime,varflag,infile):
         """
-        Read climate model output file with forcing data
-        varflag : 'runoff', 'sum_gwRecharge', 'rootzoneSM' or 'EWRef'
-        infile : given in settings file
+        Read and extract meteorological forcing data for a specific date and variable.
 
-        raises cwatmerror if file does not exist
-        
+        Parameters
+        ----------
+        ctime (datetime): The date for which data is to be extracted.
+        varflag (str): C-CWatM variable name.
+        infile (str): Base name of the input file as specified in the settings.
+
+        Raises
+        ------
+        FileNotFoundError
+            - If the corresponding NetCDF file does not exist.
+
+        as/copilot    
         """
 
         # read dataset
         forc_filename = self.get_filename(ctime,varflag,infile)
 
         if not(os.path.exists(forc_filename)):
-            msg = "Error : File " +forc_filename + " does not exist. \n"
-            raise CWATMError(msg)
-            # TODO: both coupled models need to exit!!
+            msg = "File " +forc_filename + " does not exist. \n"
+            raise FileNotFoundError(msg)
 
         try:
             # check if data is already loaded
@@ -70,9 +95,24 @@ class MeteoForc2Var:
     # --- functions used by read_forcing ---
     def varnames_dict(self):
         """
-        self.varsdict - variable names in forcing files
-        self.varsid - optional, str in filename
+        Define the mapping of variable flags to dataset variable names and filename identifiers.
+
+        Sets
+        ----
+        self.varsdict (dict): Maps variable flags to variable names in the dataset.
+        Optional:
+        self.varsid (dict): Maps variable flags to identifier strings used in filenames.
+
+        Raises
+        ------
+        InvalidModelflagError
+            - If the model flag is not recognized.
+
+        as/copilot
         """
+
+
+        
         if self.fmodel_flag == 'remo':
             self.varsdict = {'runoff':'RUNOFF' ,
                              'sum_gwRecharge':'DRAIN' , 
@@ -85,14 +125,31 @@ class MeteoForc2Var:
                            'FCAP':'c105',
                            'WSMX':'c229'}
         else:
-            msg = "Error : " +self.fmodel_flag + " is not a valid model name. \n"
-            raise CWATMError(msg)
+            raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
 
     
     def get_filename(self,ctime,varflag,infile):
         """
-        return a string of the path and filenames of the forcing files
+        Construct the full path to the NetCDF file for a given variable and date.
+
+        Parameters
+        ----------
+        ctime (datetime): The date for which the filename is constructed.
+        varflag (str): Variable name.
+        infile (str): Base name of the input file.
+
+        Returns
+        -------
+        ffname (str) : Full path to the NetCDF file.
+
+        Raises
+        ------
+        InvalidModelflagError
+            - If the model flag is not recognized.
+
+        as/copilot    
         """
+
         if self.fmodel_flag == 'remo':
             # the date format in the REMO filename is YYYYMM
             rdate = ctime.strftime('%Y%m')
@@ -101,16 +158,15 @@ class MeteoForc2Var:
             ffname = self.inpath+'/'+ryear+'/'+infile+'_'+varnumber+'_'+rdate+'.nc'
             return ffname
         else:
-            msg = "Error : " + self.fmodel_flag + " is not a valid model name. \n"
-            raise CWATMError(msg)
+            raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
 
            
 
 # ----- functions used for 'remo' -----
 def parse_dates(ds):
     """
-    Updates the time axis of a REMO dataset containing an absolute time axis.
-    Based on pyremo
+    Converts the time axis of a REMO xarray dataset from absolute time values to datetime.
+    Functionality based on the pyremo package.
     """
     ds = ds.copy()
     ds["time"] = [num2date(date) for date in ds.time]
@@ -119,7 +175,7 @@ def parse_dates(ds):
 def num2date(num):
     """
     Convert a numeric absolute date value to a datetime object.
-    Based on pyremo
+    Functionality based on the pyremo package.
     """
     frac, whole = math.modf(num)
     date_str = str(int(whole))

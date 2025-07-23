@@ -130,13 +130,13 @@ class pyoasis_cpl(object):
 
     def initial(self):
         # 1) initialize component
-        oasis_component = pyoasis.Component("hydro_component")
+        self.var.oasis_component = pyoasis.Component("hydro_component")
 
         # 2) get local communicator and define partition
         nlon_cwatm = maskmapAttr['col']
         nlat_cwatm = maskmapAttr['row']
         print(nlat_cwatm,nlon_cwatm)
-        self.partition, self.w_unit = oasis_specify_partition(oasis_component,nlon=nlon_cwatm,nlat=nlat_cwatm)
+        self.partition, self.w_unit = oasis_specify_partition(self.var.oasis_component,nlon=nlon_cwatm,nlat=nlat_cwatm)
 
         # 3) grid definition
         # get 2d coordinates of c-cwatm grid
@@ -170,7 +170,7 @@ class pyoasis_cpl(object):
         # 5) termination of definition phase
         print(' End of initialisation phase', file=self.w_unit)
         self.w_unit.flush()
-        oasis_component.enddef()
+        self.var.oasis_component.enddef()
 
     
     def dynamic(self):

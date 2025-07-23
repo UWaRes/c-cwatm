@@ -42,8 +42,7 @@ class ExtParser(configparser.ConfigParser):
 
     Attributes
     ----------
-    cur_depth : int
-        Tracks the current depth of recursive interpolation to prevent infinite loops.
+    cur_depth (int) : Tracks the current depth of recursive interpolation to prevent infinite loops.
 
     as/copilot    
     """
@@ -63,19 +62,15 @@ class ExtParser(configparser.ConfigParser):
 
         Parameters
         ----------
-        section : str
-            The section in the settings file.
-        option : str
-            The option (key) within the section.
-        raw : bool, optional
-            If True, disables interpolation and returns the raw value. Default is False.
-        vars : dict, optional
-            Additional variables for interpolation.
+        section (str) : The section in the settings file.
+        option (str) : The option (key) within the section.
+        Optional:
+        raw (bool) : If True, disables interpolation and returns the raw value. Default is False.
+        vars (dict) : Additional variables for interpolation.
 
         Returns
         -------
-        str
-            The fully resolved value of the configuration option.
+        str : The fully resolved value of the configuration option.
 
         Raises
         ------
@@ -145,13 +140,11 @@ def parse_configuration(settingsFileName):
 
     Parameters
     ----------
-    settingsFileName : str
-        Path to the settings file to be parsed.
+    settingsFileName (str) : Path to the settings file to be parsed.
 
     Returns
     -------
-    None
-        This function modifies global variables in place and does not return a value.
+    None : This function modifies global variables in place and does not return a value.
         - binding: maps configuration keys to their values for simulation parameters.
         - option: stores boolean or integer flags from the OPTIONS section.
         - outMap and outTss: store output map and time series settings.
@@ -162,10 +155,10 @@ def parse_configuration(settingsFileName):
     Raises
     ------
     CWATMFileError
-        If the specified settings file does not exist or cannot be found.
+        - If the specified settings file does not exist or cannot be found.
 
     Used in
-    ------
+    -------
         - run_cwatm.py (CWATMexe, CWATMexe2)
         
     as/copilot
