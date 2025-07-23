@@ -1,25 +1,26 @@
 # -------------------------------------------------------------------------
 # Name:        Coupling
-# Purpose:     Classes and functions used for (offline-)coupling with a climate model
+# Purpose:     Classes and functions used for reading forcing data, 
+#              used for offline-coupling with OASIS3-MCT
 #
 # Author:      Amelie Schmitt
 #
 # Created:     09/10/2024
-# Copyright:   (c) Amelie Schmitt (2024)
+# Adjusted for OASIS: 23/07/2025
+# Copyright:   (c) Amelie Schmitt (2025)
 # -------------------------------------------------------------------------
 
 import xarray as xr
 import math
 import datetime
 import os
-#from scipy.interpolate import griddata
 
 from cwatm.management_modules.messages import *
 
 class MeteoForc2Var:
     """
     A class to handle meteorological forcing data from climate models.
-    Called by the run_read_forcing_modelflag.py model coupled with oasis.
+    Called by the run_read_forcing_modelflag.py model coupled via oasis.
 
     Attributes
     ----------
@@ -61,31 +62,25 @@ class MeteoForc2Var:
 
         as/copilot    
         """
-
-        # read dataset
+        # check if dataset exists
         forc_filename = self.get_filename(ctime,varflag,infile)
-
         if not(os.path.exists(forc_filename)):
             msg = "File " +forc_filename + " does not exist. \n"
             raise FileNotFoundError(msg)
 
         try:
-            # check if data is already loaded
+            # check if dataset is already loaded
             ds = getattr(self, varflag+'_infile')
-        
         except (KeyError, AttributeError):
             # otherwise: load file
             ds = xr.open_dataset(forc_filename)  
-        
             if self.fmodel_flag == 'remo':
                 # convert time format for REMO forcing
                 ds = parse_dates(ds)
-
             setattr(self, varflag+'_infile', ds)
 
         # select data for specified date 
         data_for_date = ds.sel(time=ctime)
-        
         # get variable
         forc_varname = self.varsdict[varflag]
         datavar = data_for_date[forc_varname]
@@ -110,8 +105,6 @@ class MeteoForc2Var:
 
         as/copilot
         """
-
-
         
         if self.fmodel_flag == 'remo':
             self.varsdict = {'runoff':'RUNOFF' ,
@@ -127,7 +120,6 @@ class MeteoForc2Var:
         else:
             raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
 
-    
     def get_filename(self,ctime,varflag,infile):
         """
         Construct the full path to the NetCDF file for a given variable and date.
@@ -149,7 +141,6 @@ class MeteoForc2Var:
 
         as/copilot    
         """
-
         if self.fmodel_flag == 'remo':
             # the date format in the REMO filename is YYYYMM
             rdate = ctime.strftime('%Y%m')
@@ -161,7 +152,6 @@ class MeteoForc2Var:
             raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
 
            
-
 # ----- functions used for 'remo' -----
 def parse_dates(ds):
     """

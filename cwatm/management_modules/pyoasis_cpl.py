@@ -117,8 +117,15 @@ class pyoasis_cpl(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-
-    dummydummy                                                                                                     --   
+    conv_evap                              conversion factor for evaporation                                       --   
+    conv_groundw                           conversion factor for groundwater recharge                              --
+    conv_runoff                            conversion factor for runoff                                            --
+    conv_soilw                             conversion factor for soilwater content                                 --
+    EWRef                                  (potential) evaporation rate from water surface                         m   
+    oasisvar_id
+    runoff
+    sum_gwRecharge                         groundwater recharge                                                    m 
+    rootzoneSM                                                                                                
     =====================================  ======================================================================  =====
 
     **Functions**
@@ -129,22 +136,21 @@ class pyoasis_cpl(object):
         self.model = model
 
     def initial(self):
+        """
+        
+        """
         # 1) initialize component
-        self.var.oasis_component = pyoasis.Component("hydro_component")
+        oasis_component = pyoasis.Component("hydro_component")
 
         # 2) get local communicator and define partition
         nlon_cwatm = maskmapAttr['col']
         nlat_cwatm = maskmapAttr['row']
         print(nlat_cwatm,nlon_cwatm)
-        self.partition, self.w_unit = oasis_specify_partition(self.var.oasis_component,nlon=nlon_cwatm,nlat=nlat_cwatm)
+        self.partition, self.w_unit = oasis_specify_partition(oasis_component,nlon=nlon_cwatm,nlat=nlat_cwatm)
 
         # 3) grid definition
         # get 2d coordinates of c-cwatm grid
         lon_2d,lat_2d = create_2d_ccwatm_grid()
-        mapnp1 = np.ma.masked_array(lon_2d, maskinfo['mask'])
-        self.var.londummy = np.ma.compressed(mapnp1)
-        mapnp1 = np.ma.masked_array(lat_2d, maskinfo['mask'])
-        self.var.latdummy = np.ma.compressed(mapnp1)
 
         grid_clon, grid_clat = derive_regular_grid_corners(lon_2d,lat_2d)
         
@@ -170,12 +176,15 @@ class pyoasis_cpl(object):
         # 5) termination of definition phase
         print(' End of initialisation phase', file=self.w_unit)
         self.w_unit.flush()
-        self.var.oasis_component.enddef()
+        oasis_component.enddef()
 
     
     def dynamic(self):
+        """
 
-        # TODO: might have to be divided into 2 parts for model forcing and irriwater - to be called at different places
+        """
+
+        # TODO: might need to be divided into 2 parts for model forcing and irriwater - to be called at different places
         # in cwatm_dynamic. -> check later
         
         # Calculate the time passed in seconds
@@ -193,25 +202,24 @@ class pyoasis_cpl(object):
         field_recv_rootzoneSM = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
         self.var.oasisvar_id[3].get(seconds_passed, field_recv_rootzoneSM)
 
-        
-        # --- write to cwatm variables ---
+        # --- write to C-CWatM variables ---
         mapnp1 = np.ma.masked_array(field_recv_runoff.T[::-1,:], maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
-        self.var.runoff = np.maximum(0., mapnp1)
+        self.var.runoff = np.maximum(0., mapnp1 * self.var.conv_runoff)
 
         mapnp1 = np.ma.masked_array(field_recv_gwRecharge.T[::-1,:], maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
-        self.var.sum_gwRecharge = np.maximum(0., mapnp1)
+        self.var.sum_gwRecharge = np.maximum(0., mapnp1 * self.var.conv_groundw)
 
         # TODO: comment
         mapnp1 = np.ma.masked_array(field_recv_EWRef.T[::-1,:], maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
-        self.var.EWRef = mapnp1 * self.var.DtDay * self.var.con_e
+        self.var.EWRef = mapnp1 * self.var.conv_evap 
 
         # TODO: check conversion and comment
         mapnp1 = np.ma.masked_array(field_recv_rootzoneSM.T[::-1,:], maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
-        self.var.rootzoneSM = np.maximum(0., mapnp1)
+        self.var.rootzoneSM = np.maximum(0., mapnp1 * self.var.conv_soilw)
 
 
         # ----- 2) put -----

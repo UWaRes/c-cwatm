@@ -23,9 +23,11 @@ class readmeteo(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    DtDay                                  seconds in a timestep (default=86400)                                   s    
-    con_precipitation                      conversion factor for precipitation                                     --   
-    con_e                                  conversion factor for evaporation                                       --   
+    DtDay                                  seconds in a timestep (default=86400)                                   s     
+    conv_evap                              conversion factor for evaporation                                       --   
+    conv_runoff                            conversion factor for runoff                                            --
+    conv_groundw                           conversion factor for groundwater recharge                              --
+    conv_soilw                             conversion factor for soilwater content                                 --  
     ETRef                                  potential evapotranspiration rate from reference crop                   m    
     Precipitation                          Precipitation (input for the model)                                     m    
     only_radiation                                                                                                  --
@@ -189,19 +191,19 @@ class readmeteo(object):
             # extract forcing data from Maps (read in initial)
             # read runoff
             self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.runoff = np.maximum(0., self.var.runoff)
+            self.var.runoff = np.maximum(0., self.var.runoff * self.var.conv_runoff)
     
             # read ground water recharge
             self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge)
+            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge * self.var.conv_groundw)
             
             # read rootzone soil moisture
             self.var.rootzoneSM, MaskMapBoundary = readmeteodata(self.var.SMMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.rootzoneSM = np.maximum(0., self.var.rootzoneSM)
+            self.var.rootzoneSM = np.maximum(0., self.var.rootzoneSM * self.var.conv_soilw)
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e     
+            self.var.EWRef = self.var.EWRef * self.var.conv_evap    
              
 
         if Flags['calib']:
