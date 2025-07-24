@@ -11,7 +11,10 @@
 import pyoasis
 from pyoasis import OASIS
 import numpy as np
+import time
+
 from cwatm.management_modules.globals import maskmapAttr, maskinfo, dateVar
+from cwatm.management_modules.grid_tools import grid_tools
 
 class pyoasis_cpl(object):
     """
@@ -77,8 +80,11 @@ class pyoasis_cpl(object):
 
         # --- 3) grid definition ---
         # get 2d coordinates of c-cwatm grid
-        lon_2d,lat_2d = create_2d_ccwatm_grid()
-        grid_clon, grid_clat = derive_regular_grid_corners(lon_2d,lat_2d)
+        ccgrid = grid_tools(maskmapAttr)
+        lon_2d,lat_2d = ccgrid.create_2d_ccwatm_grid()
+        if 0:
+            grid_clon, grid_clat = grid_tools.compute_grid_corners(lon_2d,lat_2d)
+            cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
         print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min(lon_2d), file=self.w_unit)
         print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=self.w_unit)
         self.w_unit.flush()

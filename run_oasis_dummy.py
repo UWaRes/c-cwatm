@@ -5,7 +5,7 @@ import numpy as np
 
 import sys
 import os
-#import time
+import time
 import datetime
 
 # Add the relative path to sys.path
@@ -13,8 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), './cwatm
 
 from pyoasis_cpl import pyoasis_cpl
 from coupling import MeteoForc2Var
-from configuration import parse_configuration
-
+from cwatm.management_modules.grid_tools import grid_tools
 
 def parse_settings_file(filepath):
     """
@@ -76,15 +75,16 @@ nlat_forcing = lon_2d.shape[1]
 landmask_input = gridfile['WSMX'][0,:,:].values
 landmask_input[landmask_input>0] = 1 
 
-# --- derive grid corners ---
-#lat_rot,lon_rot = np.meshgrid(gridfile['rlat'].values,gridfile['rlon'].values)
-#rlon_corners,rlat_corners = calc_rotgrid_corners(lon_rot,lat_rot)
-
-#rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
-#rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
-#grid_clon = unrot_lon(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
-#grid_clat = unrot_lat(rlat_corners, rlon_corners, rot_pole_lat, rot_pole_lon)
-
+# --- derive grid corners and grid cell area ---
+if 0:
+    rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
+    rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
+    # TODO: check orientation
+    lat_rot,lon_rot = np.meshgrid(gridfile['rlat'].values,gridfile['rlon'].values)
+    grid_clon_rot, grid_clat_rot = grid_tools.compute_grid_corners(lon_rot,lat_rot)
+    grid_clon, grid_clat = grid_tools.unrot_coordinates(grid_clon_rot, grid_clat_rot, rot_pole_lon, rot_pole_lat)
+    # calculation takes about 1s
+    cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
 
 # TODO: put in function?
 # --- 1) Initialization ---
