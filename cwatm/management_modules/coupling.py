@@ -14,7 +14,11 @@ import xarray as xr
 import math
 import datetime
 import os
+import pyoasis
+from pyoasis import OASIS
+import numpy as np
 
+from cwatm.management_modules.pyoasis_cpl import pyoasis_cpl
 from cwatm.management_modules.messages import *
 
 class MeteoForc2Var:
@@ -114,9 +118,7 @@ class MeteoForc2Var:
             self.varsid = {'runoff':'c160' ,
                            'sum_gwRecharge':'c053' , 
                            'EWRef':'c064' ,
-                           'rootzoneSM':'c140',
-                           'FCAP':'c105',
-                           'WSMX':'c229'}
+                           'rootzoneSM':'c140'}
         else:
             raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
 
@@ -173,5 +175,118 @@ def num2date(num):
     datetime0 = date + datetime.timedelta(seconds=datetime.timedelta(days=1).total_seconds() * frac)
     return datetime0
 
+# ----- function used to read forcing -----
+def parse_settings_file(filepath):
+    """
+    Get values from C-CWatM settingsfile.
 
+    Parameters
+    ----------
+    filepath (str) : path and name of C-CWatM settingsfile
 
+    Returns
+    -------
+    settings (dict) : dictionary with keys structured as [headingname][varname]
+    """
+    settings = {}
+    current_section = None
+    with open(filepath, 'r') as f:
+        for line in f:
+            # Remove comments and whitespace
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            # Detect section headers
+            if line.startswith('[') and line.endswith(']'):
+                current_section = line[1:-1].strip()
+                settings[current_section] = {}
+                continue
+            # Parse key-value pairs
+            if '=' in line and current_section:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                settings[current_section][key] = value
+
+    return settings
+
+def read_modelrun_info(binding):
+    """
+    Extract the model run start time and number of simulated days from the C-CWatM settingsfile dictionary.
+
+    Parameters
+    ----------
+    binding (dict) : A nested dictionary from C-CWatM settingsfile with keys structured as [headingname][varname]; 
+                     with keys 'StepStart' and 'StepEnd' in the format '%d/%m/%Y'.
+
+    Returns
+    -------
+    starttime (datetime.datetime) : The start date of the model run.
+    simulated_days (float) : The total number of simulated days, including both start and end dates.
+
+    as/copilot
+    """
+    startdate = binding['TIME-RELATED_CONSTANTS']['StepStart']
+    enddate = binding['TIME-RELATED_CONSTANTS']['StepEnd']
+    starttime = datetime.datetime.strptime(startdate, '%d/%m/%Y')
+    endtime = datetime.datetime.strptime(enddate, '%d/%m/%Y')
+    simulated_days = (endtime-starttime+datetime.timedelta(days=1)) / datetime.timedelta(days=1)
+
+    return starttime, simulated_days
+
+    
+def init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input):
+    """
+    Initializes the OASIS coupling interface for the forcing component.
+
+    This function sets up the OASIS component, defines the grid and partitioning,
+    and declares the coupling fields to be exchanged. 
+
+    Parameters
+    ----------
+    nlon_forcing (int) : Number of longitudinal grid points in the forcing data.
+    nlat_forcing (int) : Number of latitudinal grid points in the forcing data.
+    lon_2d (ndarray) : 2D array of longitudes for the forcing grid.
+    lat_2d (ndarray) : 2D array of latitudes for the forcing grid.
+    landmask_input (ndarray) : 2D array representing the land-sea mask; with 0 for land and 1 for ocean.
+
+    Returns
+    -------
+    comp (pyoasis.Component) : The initialized OASIS component for the forcing model.
+    w_unit (file-like) : The file-like object used for logging OASIS grid information.
+    var_id (list) : List of OASIS variable objects representing the declared coupling fields.
+
+    as/copilot
+    """
+
+    # --- OASIS_INIT_COMP ---
+    comp = pyoasis.Component("forcing_component")
+    
+    # get localcomm and define partition
+    partition, w_unit = pyoasis_cpl.oasis_specify_partition(comp,nlon=nlon_forcing,nlat=nlat_forcing)
+    
+    # grid definition 
+    print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min(lon_2d), file=w_unit)
+    print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=w_unit)
+    w_unit.flush()
+    # write OASIS grid information
+    pyoasis_cpl.oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,partition,'forcing_grid')
+    
+    # --- DECLARATION OF THE COUPLING FIELDS ---
+    numcouple = 4 # number of coupling fields
+    var_id = [None] * numcouple
+    var_id[0] = pyoasis.Var("FIELD_SEND_runoff", partition, OASIS.OUT)
+    var_id[1] = pyoasis.Var("FIELD_SEND_gwRecharge", partition, OASIS.OUT)
+    var_id[2] = pyoasis.Var("FIELD_SEND_EWRef", partition, OASIS.OUT)
+    var_id[3] = pyoasis.Var("FIELD_SEND_rootzoneSM", partition, OASIS.OUT)
+    print(f' var_id FRECVATM, {var_id[0]._id}', file=w_unit)
+    w_unit.flush()
+    
+    # --- TERMINATION OF DEFINITION PHASE ---
+    print(' End of initialisation phase', file=w_unit)
+    w_unit.flush()
+    
+    # --- OASIS_ENDDEF ---
+    comp.enddef()
+
+    return comp,w_unit,var_id

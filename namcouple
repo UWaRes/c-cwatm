@@ -9,7 +9,8 @@
 ###########################################################################
  $RUNTIME
 # The total simulated time for this run in seconds
-  345601
+#  345601
+  262801
 ###########################################################################
  $NLOGPRT
 # Amount of information written to OASIS3-MCT log files (see User Guide)

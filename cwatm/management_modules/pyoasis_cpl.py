@@ -82,6 +82,7 @@ class pyoasis_cpl(object):
         # get 2d coordinates of c-cwatm grid
         ccgrid = grid_tools(maskmapAttr)
         lon_2d,lat_2d = ccgrid.create_2d_ccwatm_grid()
+        # optional: get grid cell corners and area (only required for certain regridding methods)
         if 0:
             grid_clon, grid_clat = grid_tools.compute_grid_corners(lon_2d,lat_2d)
             cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
@@ -89,7 +90,7 @@ class pyoasis_cpl(object):
         print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=self.w_unit)
         self.w_unit.flush()
         # write oasis grid information
-        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,maskinfo['mask'].T.data[:,::-1],self.partition,'ccwatm_grid')
+        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid')
 
         # --- 4) declaration of coupling fields ---
         # needs to match namcouple
@@ -140,6 +141,7 @@ class pyoasis_cpl(object):
         
         # ----- 1) OASIS get -----
         # same order as declared in pyoasis_cpl.initial(); needs to match namcouple
+        # TODO: flip
         field_recv_runoff = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
         self.var.oasisvar_id[0].get(seconds_passed, field_recv_runoff)
         field_recv_gwRecharge = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
@@ -151,20 +153,21 @@ class pyoasis_cpl(object):
 
         # --- assign to C-CWatM variables ---
         # apply landmask and conversion factors
+        # received fields need to be flipped and transposed to match the C-CWatM grid orientation
         # runoff
-        mapnp1 = np.ma.masked_array(field_recv_runoff.T[::-1,:], maskinfo['mask'])
+        mapnp1 = np.ma.masked_array(np.flipud(field_recv_runoff.T), maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.runoff = np.maximum(0., mapnp1 * self.var.conv_runoff)
         # groundwater recharge
-        mapnp1 = np.ma.masked_array(field_recv_gwRecharge.T[::-1,:], maskinfo['mask'])
+        mapnp1 = np.ma.masked_array(np.flipud(field_recv_gwRecharge.T), maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.sum_gwRecharge = np.maximum(0., mapnp1 * self.var.conv_groundw)
         # evaporation over water
-        mapnp1 = np.ma.masked_array(field_recv_EWRef.T[::-1,:], maskinfo['mask'])
+        mapnp1 = np.ma.masked_array(np.flipud(field_recv_EWRef.T), maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.EWRef = mapnp1 * self.var.conv_evap 
         # soil water content
-        mapnp1 = np.ma.masked_array(field_recv_rootzoneSM.T[::-1,:], maskinfo['mask'])
+        mapnp1 = np.ma.masked_array(np.flipud(field_recv_rootzoneSM.T), maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.rootzoneSM = np.maximum(0., mapnp1 * self.var.conv_soilw)
         # TODO: the variables should not be flipped here, but rather already before sending -> easier adjustment

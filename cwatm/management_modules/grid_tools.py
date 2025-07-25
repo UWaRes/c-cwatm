@@ -18,7 +18,7 @@ class grid_tools:
 
     ccgrid = grid_tools()
     lon_2d,lat_2d = ccgrid.create_2d_ccwatm_grid()
-    lon_corners, lat_corners = grid_tools.compute_grid_coners(lon_2d,lat_2d)
+    lon_corners, lat_corners = grid_tools.compute_grid_corners(lon_2d,lat_2d)
     areas = compute_grid_cell_areas(lon_corners, lat_corners)
     
     """
@@ -46,12 +46,10 @@ class grid_tools:
 
         as/copilot
         """
-        # TODO: check how to flip
-        # variables should not be flipped after receiving, but rather already before sending -> easier adjustment
-        # for other models/data
         lon_1d = self.maskmapAttr['x'] + self.maskmapAttr['cell'] * np.arange(self.maskmapAttr['col'])
         lat_1d = self.maskmapAttr['y'] - self.maskmapAttr['cell'] * np.arange(self.maskmapAttr['row'])
         lat_2d, lon_2d = np.meshgrid(lat_1d[::-1], lon_1d)
+        
         return lon_2d, lat_2d
 
     @staticmethod
