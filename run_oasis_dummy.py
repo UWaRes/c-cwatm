@@ -132,6 +132,11 @@ for t in np.arange(simulated_days):
     var_id[2].put(seconds_passed, meteoforc.EWRef.values.T)
     var_id[3].put(seconds_passed, meteoforc.rootzoneSM.values.T)
 
+    # put
+    # TODO: irrigation water
+    # new flag: coupl_irri
+
+
 # --- finalize OASIS ---
 del comp
 

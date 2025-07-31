@@ -141,7 +141,6 @@ class pyoasis_cpl(object):
         
         # ----- 1) OASIS get -----
         # same order as declared in pyoasis_cpl.initial(); needs to match namcouple
-        # TODO: flip
         field_recv_runoff = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
         self.var.oasisvar_id[0].get(seconds_passed, field_recv_runoff)
         field_recv_gwRecharge = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
@@ -170,12 +169,11 @@ class pyoasis_cpl(object):
         mapnp1 = np.ma.masked_array(np.flipud(field_recv_rootzoneSM.T), maskinfo['mask'])
         mapnp1 = np.ma.compressed(mapnp1)
         self.var.rootzoneSM = np.maximum(0., mapnp1 * self.var.conv_soilw)
-        # TODO: the variables should not be flipped here, but rather already before sending -> easier adjustment
-        # for other models/data 1) adjust grid here 2) adjust sending grid 3) adjust sending variables
 
         # ----- 2) OASIS put -----
 
         # -> TODO: irrigation water
+        # new flag: coupl_irri
 
 
     # ------- OASIS3-MCT functions -------
