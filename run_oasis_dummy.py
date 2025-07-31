@@ -364,6 +364,11 @@ for t in range(5): # same number of time loops as C-CWatM
     var_id[2].put(seconds_passed, meteoforc.EWRef.values.T)
     var_id[3].put(seconds_passed, meteoforc.rootzoneSM.values.T)
 
+    # put
+    # TODO: irrigation water
+    # new flag: coupl_irri
+
+
 # --- finalize OASIS ---
 del comp
 
