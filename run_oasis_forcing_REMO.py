@@ -46,7 +46,7 @@ def read_remo_info(binding,starttime):
     lon_2d (ndarray) : 2D array of grid cell center longitudes.
     lat_2d (ndarray) : 2D array of grid cell center latitudes.
     landmask (ndarray) : 2D array representing the land-sea mask; with 0 for land and 1 for ocean.
-    soilwat_factor (ndarray) : Factor to convert soil water content in m to percent, 
+    root_depth (ndarray) : Factor to convert soil water content in m to percent, 
                                corresponds to soil depth.
 
     """
@@ -58,7 +58,7 @@ def read_remo_info(binding,starttime):
     FCAP = np.squeeze(ds['FCAP'].values)
     ds = xr.open_dataset(filepath+file_prefix+'_c229.nc')
     WSMX = np.squeeze(ds['WSMX'].values)
-    soilwat_factor = FCAP/WSMX
+    root_depth = FCAP/WSMX
    
     # --- read grid data of REMO input file ---
     rdate = starttime.strftime('%Y%m')
@@ -75,7 +75,7 @@ def read_remo_info(binding,starttime):
 
     # --- derive grid corners and grid cell area ---
     # optional: only required for certain regridding methods
-    if 0:
+    if 1:
         rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
         rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
         # TODO: check orientation
@@ -83,30 +83,40 @@ def read_remo_info(binding,starttime):
         grid_clon_rot, grid_clat_rot = grid_tools.compute_grid_corners(lon_rot,lat_rot)
         grid_clon, grid_clat = grid_tools.unrot_coordinates(grid_clon_rot, grid_clat_rot, rot_pole_lon, rot_pole_lat)
         # calculation takes about 1s
-        cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
+        #cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
 
-    return nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input, soilwat_factor
+    #return nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input, root_depth
+    return nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input, root_depth, grid_clon, grid_clat
 
 
 ############################
 # ----- Initialization -----
 ############################
 
+print('Starting oasis forcing script')
+
 # --- get info from settings file ---
 settingsfile = sys.argv[1]
 binding = parse_settings_file(settingsfile)
+
+coupl_flag = binding['COUPLING']['coupl_flag']
+if coupl_flag != 'oasis_coupl':
+    print(f"coupl_flag is {coupl_flag}. run_oasis_forcing_REMO.py can only run correctly with oasis_coupl.")
+    sys.exit()
+
 starttime, simulated_days = read_modelrun_info(binding)
 
 # --- initialize reading of forcing data ---
 meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
 
 # --- read remo grid information and other info ---
-nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,soilwat_factor = read_remo_info(binding['COUPLING']['PathForc'],starttime)
+#nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,root_depth = read_remo_info(binding,starttime)
+nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,root_depth, grid_clon, grid_clat = read_remo_info(binding,starttime)
 
 # --- initialize OASIS coupler ---
 # transpose REMO grid to match C-CWatM orientation
-comp,w_unit,var_id = init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d.T,lat_2d.T,landmask_input.T)
-
+#comp,w_unit,var_id = init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d.T,lat_2d.T,landmask_input.T)
+comp,w_unit,var_id = init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d.T,lat_2d.T,landmask_input.T,grid_clon,grid_clat)
 
 #######################
 # ----- Time loop -----
@@ -115,6 +125,7 @@ comp,w_unit,var_id = init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d.T,lat_2
 for t in np.arange(simulated_days): 
     seconds_passed = int(t * 86400.)
     currenttime = starttime + datetime.timedelta(seconds=seconds_passed)
+    #print(currenttime)
 
     # --- read REMO forcing ---
     meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
@@ -122,7 +133,7 @@ for t in np.arange(simulated_days):
     meteoforc.read_forcing(currenttime,'EWRef',binding['COUPLING']['OWEName'])
     meteoforc.read_forcing(currenttime,'rootzoneSM',binding['COUPLING']['SMName'])
     # transform soil water content from [m] to [%]
-    meteoforc.rootzoneSM = meteoforc.rootzoneSM * soilwat_factor
+    meteoforc.rootzoneSM = meteoforc.rootzoneSM * root_depth
 
     # -------------- get and put -----------------
     # C-CWatM needs input in [m]

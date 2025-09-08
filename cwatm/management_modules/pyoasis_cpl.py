@@ -83,14 +83,14 @@ class pyoasis_cpl(object):
         ccgrid = grid_tools(maskmapAttr)
         lon_2d,lat_2d = ccgrid.create_2d_ccwatm_grid()
         # optional: get grid cell corners and area (only required for certain regridding methods)
-        if 0:
-            grid_clon, grid_clat = grid_tools.compute_grid_corners(lon_2d,lat_2d)
-            cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
+        grid_clon, grid_clat = grid_tools.compute_grid_corners(lon_2d,lat_2d)
+        #cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
         print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min(lon_2d), file=self.w_unit)
         print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=self.w_unit)
         self.w_unit.flush()
         # write oasis grid information
-        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid')
+        #self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid')
+        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid',grid_clon,grid_clat)
 
         # --- 4) declaration of coupling fields ---
         # needs to match namcouple

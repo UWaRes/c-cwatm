@@ -9,8 +9,14 @@
 ###########################################################################
  $RUNTIME
 # The total simulated time for this run in seconds
-#  345601
-  262801
+## 5 days
+#  435601
+## 3 days
+#  262801
+## 10 days
+#  867601
+## 30 days
+ 2678401
 ###########################################################################
  $NLOGPRT
 # Amount of information written to OASIS3-MCT log files (see User Guide)
@@ -48,7 +54,10 @@ SCRIPR
 #
 # Specific parameters for SCRIPR, here specifying the parameter of the BLINEAR interpolation to be used
 # this works 
-DISTWGT LR SCALAR LATLON 10 1 
+CONSERV LR SCALAR LATLON 1 FRACAREA FIRST 
+#DISTWGT LR SCALAR LATLON 1 1
+#DISTWGT LR SCALAR LATLON 10 1 
+#DISTWGT LR SCALAR LATLON 10 10
 # this works
 #DISTWGT LR SCALAR LATLON 10 4 
 # this works
@@ -62,7 +71,10 @@ FIELD_SEND_gwRecharge ccwatm_recv_gwRecharge 1 86400 1 fdocn.nc EXPOUT
 forcing_grid ccwatm_grid 
 R  0  R  0
 SCRIPR 
-DISTWGT LR SCALAR LATLON 10 1 
+CONSERV LR SCALAR LATLON 1 FRACAREA FIRST 
+#DISTWGT LR SCALAR LATLON 1 1
+#DISTWGT LR SCALAR LATLON 10 1 
+#DISTWGT LR SCALAR LATLON 10 10
 # 
 ######################################################
 #
@@ -72,7 +84,9 @@ FIELD_SEND_EWRef ccwatm_recv_EWRef 1 86400 1 fdocn.nc EXPOUT
 forcing_grid ccwatm_grid 
 R  0  R  0
 SCRIPR 
-DISTWGT LR SCALAR LATLON 10 1 
+DISTWGT LR SCALAR LATLON 1 4
+#DISTWGT LR SCALAR LATLON 10 1
+#DISTWGT LR SCALAR LATLON 10 10 
 # 
 ######################################################
 #
@@ -82,7 +96,9 @@ FIELD_SEND_rootzoneSM ccwatm_recv_rootzoneSM 1 86400 1 fdocn.nc EXPOUT
 forcing_grid ccwatm_grid 
 R  0  R  0
 SCRIPR 
-DISTWGT LR SCALAR LATLON 10 1 
+DISTWGT LR SCALAR LATLON 1 4
+#DISTWGT LR SCALAR LATLON 10 1 
+#DISTWGT LR SCALAR LATLON 10 10
 # 
 ######################################################
 #

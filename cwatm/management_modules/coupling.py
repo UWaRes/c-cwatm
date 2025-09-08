@@ -153,6 +153,65 @@ class MeteoForc2Var:
         else:
             raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
 
+    def interp_rootzoneSM_2d(ztop, zbott, sm_layers, in_zroot):
+        """
+        Calculate root zone soil moisture from soil moisture given in n layers for gridded data.
+        
+        Parameters
+        ----------
+        ztop, zbott (ndarray) : 1D arrays of layer top and layer bottom (m) (length: n_layers)
+        sm_layers (ndarray) : 3D array of soil moisture in n layers (%)
+        in_zroot (ndarray) : 2D array of root depth (m)
+        
+        Returns
+        -------
+        rootzoneSM (ndarray) : 2D array of root zone soil moisture (%)
+        """
+        ztop = np.asarray(ztop)
+        zbott = np.asarray(zbott)
+        sm_layers = np.asarray(sm_layers)
+        in_zroot = np.asarray(in_zroot)
+    
+        dlayer = zbott - ztop
+        n_layers, n_rows, n_cols = sm_layers.shape
+        max_depth = np.max(zbott)
+    
+        # Expand dimensions for broadcasting
+        ztop_3d = ztop[:, np.newaxis, np.newaxis]
+        zbott_3d = zbott[:, np.newaxis, np.newaxis]
+        dlayer_3d = dlayer[:, np.newaxis, np.newaxis]
+        zroot_3d = in_zroot[np.newaxis, :, :]
+    
+        # catch very small root depths
+        zroot_3d[zroot_3d<0.01] = 0.01
+    
+        # Masks
+        full_mask = zbott_3d < zroot_3d
+        fract_mask = ztop_3d < zroot_3d
+    
+        # Compute fractional depth
+        dfract = np.where(fract_mask, zroot_3d - ztop_3d, 0)
+        dfract = np.where(np.any(fract_mask, axis=0), dfract, 0)
+        last_fract_index = np.argmax(fract_mask[::-1], axis=0)
+        last_fract_index = fract_mask.shape[0] - 1 - last_fract_index
+    
+        # Gather last fractional layer values
+        sm_last = np.take_along_axis(sm_layers_3d, last_fract_index[np.newaxis, :, :], axis=0).squeeze(0)
+        dfract_last = np.take_along_axis(dfract, last_fract_index[np.newaxis, :, :], axis=0).squeeze(0)
+    
+        # Weighted sum for full layers
+        full_sum = np.sum(sm_layers * dlayer_3d * full_mask, axis=0)
+    
+        # Final root zone soil moisture
+        rootzoneSM = np.where(
+            in_zroot > max_depth,
+            np.sum(sm_layers * dlayer_3d, axis=0) / max_depth,
+            (full_sum + sm_last * dfract_last) / in_zroot
+        )
+    
+        return rootzoneSM
+          
+
            
 # ----- functions used for 'remo' -----
 def parse_dates(ds):
@@ -235,7 +294,7 @@ def read_modelrun_info(binding):
     return starttime, simulated_days
 
     
-def init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input):
+def init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,grid_clon=None,grid_clat=None):
     """
     Initializes the OASIS coupling interface for the forcing component.
 
@@ -264,13 +323,14 @@ def init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input):
     
     # get localcomm and define partition
     partition, w_unit = pyoasis_cpl.oasis_specify_partition(comp,nlon=nlon_forcing,nlat=nlat_forcing)
-    
+   
     # grid definition 
     print(f' grid_lon maximum and minimum', '%.5f' % np.max(lon_2d), '%.5f' % np.min(lon_2d), file=w_unit)
     print(f' grid_lat maximum and minimum', '%.5f' % np.max(lat_2d), '%.5f' % np.min(lat_2d), file=w_unit)
     w_unit.flush()
     # write OASIS grid information
-    pyoasis_cpl.oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,partition,'forcing_grid')
+    #pyoasis_cpl.oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,partition,'forcing_grid')
+    pyoasis_cpl.oasis_define_grid(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,partition,'forcing_grid',grid_clon,grid_clat)
     
     # --- DECLARATION OF THE COUPLING FIELDS ---
     numcouple = 4 # number of coupling fields
@@ -281,7 +341,7 @@ def init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input):
     var_id[3] = pyoasis.Var("FIELD_SEND_rootzoneSM", partition, OASIS.OUT)
     print(f' var_id FRECVATM, {var_id[0]._id}', file=w_unit)
     w_unit.flush()
-    
+   
     # --- TERMINATION OF DEFINITION PHASE ---
     print(' End of initialisation phase', file=w_unit)
     w_unit.flush()
