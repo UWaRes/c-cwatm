@@ -25,7 +25,6 @@ class initcondition(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
     Crops_names                            Internal: List of specific crops                                        --   
     includeCrops                           1 when includeCrops=True in Settings, 0 otherwise                       bool 
     Crops                                  Internal: List of specific crops and Kc/Ky parameters                   --   
@@ -217,7 +216,6 @@ class initcondition(object):
                 self.var.desalAnnualCap = self.desalinationCapacity(xl_settings_file_path)
         
         # groundwater
-        #if not self.var.modflow:
         initCondVar.append("storGroundwater")
         initCondVarValue.append("storGroundwater")
 

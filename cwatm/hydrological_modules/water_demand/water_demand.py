@@ -37,7 +37,6 @@ class water_demand:
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
     load_initial                           Settings initLoad holds initial conditions for variables                input
     readAvlStorGroundwater                 same as storGroundwater but equal to 0 when inferior to a treshold      m    
     includeDesal                                                                                                   --   
@@ -72,15 +71,14 @@ class water_demand:
     InvCellArea                            Inverse of cell area of each simulated mesh                             1/m2 
     M3toM                                  Coefficient to change units                                             --   
     GW_pumping                             Input, True if Groundwater_pumping=True                                 bool 
-    availableGWStorageFraction                                                                                     --   
-    groundwater_storage_available          Groundwater storage. Used with MODFLOW.                                 m    
+    availableGWStorageFraction                                                                                     --    
     gwstorage_full                         Groundwater storage at full capacity                                    m    
     wwtColArea                                                                                                     --   
     wwtSewerCollection                                                                                             --   
     wwtOverflowOutM                                                                                                --   
     fracVegCover                           Fraction of specific land covers (0=forest, 1=grasslands, etc.)         %    
     adminSegments                          Domestic agents                                                         Int  
-    nonFossilGroundwaterAbs                Non-fossil groundwater abstraction. Used primarily without MODFLOW.     m    
+    nonFossilGroundwaterAbs                Non-fossil groundwater abstraction.                                     m    
     includeWastewater                                                                                              --   
     reservoir_transfers_net_M3C                                                                                    --   
     reservoir_transfers_in_M3C                                                                                     --   
@@ -114,7 +112,6 @@ class water_demand:
     act_bigLakeResAbst                     Abstractions to satisfy demands from lakes and reservoirs               m    
     act_smallLakeResAbst                   Abstractions from small lakes at demand location                        m    
     waterdemandFixed                                                                                               --   
-    modfPumpingM                                                                                                   --   
     activate_domestic_agents               Input, True if activate_domestic_agents = True                          bool 
     domesticDemand                         Domestic demand                                                         m    
     swAbstractionFraction_domestic         With domestic agents, derived from surface water over total water requ  %    
@@ -192,12 +189,8 @@ class water_demand:
     allocSegments                                                                                                  --   
     swAbstractionFraction                  Input, Fraction of demands to be satisfied with surface water           %    
     allocation_zone                                                                                                --   
-    modflowPumping                                                                                                 --   
     leakage                                Canal leakage leading to either groundwater recharge or runoff          m3   
     pumping                                                                                                        --   
-    Pumping_daily                          Groundwater abstraction asked of MODFLOW. modfPumpingM_actual is the r  m    
-    modflowDepth2                                                                                                  --   
-    modflowTopography                                                                                              --   
     allowedPumping                                                                                                 --   
     ratio_irrWithdrawalGW_month                                                                                    --   
     ratio_irrWithdrawalSW_month                                                                                    --   
@@ -250,7 +243,7 @@ class water_demand:
     act_indWithdrawal                      Industrial withdrawal                                                   m    
     act_domWithdrawal                      Domestic withdrawal                                                     m    
     act_livWithdrawal                      Livestock withdrawals                                                   m    
-    pot_GroundwaterAbstract                Potential groundwater abstraction. Primarily used without MODFLOW.      m    
+    pot_GroundwaterAbstract                Potential groundwater abstraction.                                      m    
     WB_elec                                Fractions of live storage to be exported from basin                     366-d
     act_nonpaddyConsumption                Non-paddy irrigation consumption                                        m    
     act_paddyConsumption                   Paddy consumption                                                       m    
@@ -500,10 +493,7 @@ class water_demand:
                 if 'reservoir_command_areas_restricted' in binding:
                     self.var.load_command_areas_wwt = True
 
-                if self.var.modflow and 'Water_conveyance_efficiency' in binding:
-                    self.var.Water_conveyance_efficiency = loadmap('Water_conveyance_efficiency') + globals.inZero
-                else:
-                    self.var.Water_conveyance_efficiency = 1.0 + globals.inZero
+                self.var.Water_conveyance_efficiency = 1.0 + globals.inZero
 
                 # load command areas & command areas_wwt
                 if self.var.load_command_areas:
@@ -614,12 +604,9 @@ class water_demand:
             for No in range(4):
                 self.var.swAbstractionFraction += self.var.fracVegCover[No] * swAbstractionFraction
             for No in range(4, 6):
-                if self.var.modflow:
-                    self.var.swAbstractionFraction += self.var.fracVegCover[No] * swAbstractionFraction
-                else:
-                    # The motivation is to avoid groundwater on sealed and water land classes
-                    # TODO: Groundwater pumping should be allowed over sealed land
-                    self.var.swAbstractionFraction += self.var.fracVegCover[No]
+                # The motivation is to avoid groundwater on sealed and water land classes
+                # TODO: Groundwater pumping should be allowed over sealed land
+                self.var.swAbstractionFraction += self.var.fracVegCover[No]
 
             # non-irrigation input maps have for each month or year the unit m/day (True) or million m3/month (False)
             self.var.demand_unit = True
@@ -651,13 +638,9 @@ class water_demand:
             arr = arr[cut2:cut3, cut0:cut1].astype(int)
             self.var.allocation_zone = compressArray(arr)
 
-            self.var.modflowPumping = globals.inZero.copy()
             self.var.leakage = globals.inZero.copy()
             self.var.pumping = globals.inZero.copy()
-            self.var.modfPumpingM = globals.inZero.copy()
             self.var.Pumping_daily = globals.inZero.copy()
-            self.var.modflowDepth2 = 0
-            self.var.modflowTopography = 0
             self.var.allowedPumping = globals.inZero.copy()
             self.var.leakageCanals_M = globals.inZero.copy()
 
@@ -764,9 +747,6 @@ class water_demand:
             self.var.ind_efficiency = 1.
             self.var.dom_efficiency = 1.
             self.var.liv_efficiency = 1
-            self.var.modflowPumping = 0
-            self.var.modflowDepth2 = 0
-            self.var.modflowTopography = 0
             self.var.act_bigLakeResAbst = globals.inZero.copy()
             self.var.act_bigLakeResAbst_wwt = globals.inZero.copy()
     
@@ -818,7 +798,6 @@ class water_demand:
             self.var.act_irrNonpaddyWithdrawal = globals.inZero.copy()
             self.var.act_irrPaddyWithdrawal = globals.inZero.copy()
 
-            self.var.modfPumpingM = globals.inZero.copy()
             self.var.Pumping_daily = globals.inZero.copy()
 
             self.var.act_irrPaddyDemand = globals.inZero.copy()
@@ -845,23 +824,6 @@ class water_demand:
         * get non-Irrigation water demand and its return flow fraction
         """
 
-        if self.var.modflow:
-
-            if self.var.includeIndusDomesDemand:  # all demands are taken into account
-                self.environmental_need.dynamic()
-            else:
-                self.var.envFlow = 0.00001  # 0.01mm
-
-            # computing leakage from rivers to groundwater
-
-            # self.var.readAvlChannelStorageM will be used in land covertype to compute leakage to groundwater if ModFlow coupling
-            # to avoid small values and to avoid surface water abstractions from dry channels (>= 0.01mm)
-            self.var.readAvlChannelStorageM = np.where(self.var.channelStorage < (0.0005 * self.var.cellArea), 0.,
-                                                       self.var.channelStorage)  # in [m3]
-            # coversersion m3 -> m # minus environmental flow
-            self.var.readAvlChannelStorageM = self.var.readAvlChannelStorageM * self.var.M3toM  # in [m]
-            self.var.readAvlChannelStorageM = np.maximum(0., self.var.readAvlChannelStorageM - self.var.envFlow)
-
         if checkOption('includeWaterDemand'):
 
             # for debugging of a specific date
@@ -885,7 +847,6 @@ class water_demand:
                 self.environmental_need.dynamic()
             else:
                 self.irrigation.dynamic()
-                # if not self.var.modflow:
                 self.environmental_need.dynamic()
 
             if self.var.includeIndusDomesDemand:  # all demands are taken into account
@@ -924,10 +885,9 @@ class water_demand:
             # ----------------------------------------------------
             # WATER AVAILABILITY
 
-            if not self.var.modflow:  # already done if ModFlow coupling
-                # conversion m3 -> m # minus environmental flow
-                self.var.readAvlChannelStorageM = np.maximum(0.,
-                                                             self.var.channelStorage * self.var.M3toM - self.var.envFlow)  # in [m]
+            # conversion m3 -> m # minus environmental flow
+            self.var.readAvlChannelStorageM = np.maximum(0.,
+                                                         self.var.channelStorage * self.var.M3toM - self.var.envFlow)  # in [m]
 
             # -------------------------------------
             # WATER DEMAND vs. WATER AVAILABILITY
@@ -2020,15 +1980,7 @@ class water_demand:
             else:
                 self.var.pot_GroundwaterAbstract = totalDemand - self.var.act_SurfaceWaterAbstract
 
-            if self.var.modflow:
-                # if available storage is too low, no pumping in this cell (defined in transient module)
-
-                self.var.nonFossilGroundwaterAbs = np.where(self.var.groundwater_storage_available > (
-                        1 - self.var.availableGWStorageFraction) * self.var.gwstorage_full,
-                                                            np.minimum(self.var.groundwater_storage_available,
-                                                                       self.var.pot_GroundwaterAbstract), 0)
-            else:
-                self.var.nonFossilGroundwaterAbs = np.maximum(0., np.minimum(self.var.readAvlStorGroundwater,
+            self.var.nonFossilGroundwaterAbs = np.maximum(0., np.minimum(self.var.readAvlStorGroundwater,
                                                                              self.var.pot_GroundwaterAbstract))
 
             # if limitAbstraction from groundwater is True
@@ -2160,135 +2112,114 @@ class water_demand:
 
 
             else:
-                # This is the case when using ModFlow coupling (limitation imposed previously)
-                if self.var.modflow:
-                    # This is the case when using ModFlow coupling (limitation imposed previously)
-                    # part of the groundwater demand unsatisfied
-                    self.var.unmetDemand = self.var.pot_GroundwaterAbstract - self.var.nonFossilGroundwaterAbs
+                # Fossil groundwater abstractions are allowed (act = pot)
+                if 'zonal_abstraction' in option:
+                    if checkOption('zonal_abstraction'):
 
-                    if self.var.includeIndusDomesDemand:  # all demands are taken into account
-                        self.var.act_nonIrrWithdrawal = np.copy(self.var.nonIrrDemand)
-                    self.var.act_irrWithdrawal = np.copy(self.var.totalIrrDemand)
+                        # using allocation from abstraction zone
+                        # this might be a regular grid e.g. 2x2 for 0.5 deg
+                        left_sf = self.var.readAvlChannelStorageM  # already removed - self.var.act_channelAbst
+                        # sum demand, surface water - local used, groundwater - local use, not satisfied for allocation zone
 
-                    act_gw = np.copy(self.var.nonFossilGroundwaterAbs)
+                        if self.var.sectorSourceAbstractionFractions:
+                            unmetChannel_Domestic = pot_Channel_Domestic - self.var.Channel_Domestic
+                            unmetChannel_Livestock = pot_Channel_Livestock - self.var.Channel_Livestock
+                            unmetChannel_Industry = pot_Channel_Industry - self.var.Channel_Industry
+                            unmetChannel_Irrigation = pot_Channel_Irrigation - self.var.Channel_Irrigation
 
-                else:
-                    # Fossil groundwater abstractions are allowed (act = pot)
-                    if 'zonal_abstraction' in option:
-                        if checkOption('zonal_abstraction'):
+                            pot_Channel_Domestic = np.minimum(unmetChannel_Domestic, unmet_Domestic)
+                            pot_Channel_Livestock = np.minimum(unmetChannel_Livestock, unmet_Livestock)
+                            pot_Channel_Industry = np.minimum(unmetChannel_Industry, unmet_Industry)
+                            pot_Channel_Irrigation = np.minimum(unmetChannel_Irrigation, unmet_Irrigation)
 
-                            # using allocation from abstraction zone
-                            # this might be a regular grid e.g. 2x2 for 0.5 deg
-                            left_sf = self.var.readAvlChannelStorageM  # already removed - self.var.act_channelAbst
-                            # sum demand, surface water - local used, groundwater - local use, not satisfied for allocation zone
+                            unmet_Channel = pot_Channel_Domestic + pot_Channel_Livestock \
+                                            + pot_Channel_Industry + pot_Channel_Irrigation
 
-                            if self.var.sectorSourceAbstractionFractions:
-                                unmetChannel_Domestic = pot_Channel_Domestic - self.var.Channel_Domestic
-                                unmetChannel_Livestock = pot_Channel_Livestock - self.var.Channel_Livestock
-                                unmetChannel_Industry = pot_Channel_Industry - self.var.Channel_Industry
-                                unmetChannel_Irrigation = pot_Channel_Irrigation - self.var.Channel_Irrigation
-
-                                pot_Channel_Domestic = np.minimum(unmetChannel_Domestic, unmet_Domestic)
-                                pot_Channel_Livestock = np.minimum(unmetChannel_Livestock, unmet_Livestock)
-                                pot_Channel_Industry = np.minimum(unmetChannel_Industry, unmet_Industry)
-                                pot_Channel_Irrigation = np.minimum(unmetChannel_Irrigation, unmet_Irrigation)
-
-                                unmet_Channel = pot_Channel_Domestic + pot_Channel_Livestock \
-                                                + pot_Channel_Industry + pot_Channel_Irrigation
-
-                                zoneDemand = npareatotal(unmet_Channel * self.var.cellArea, self.var.allocation_zone)
-
-                            else:
-                                zoneDemand = npareatotal(self.var.unmetDemand * self.var.cellArea, self.var.allocation_zone)
-
-                            zone_sf_avail = npareatotal(left_sf, self.var.allocation_zone)
-
-                            # zone abstraction is minimum of availability and demand
-                            zone_sf_abstraction = np.minimum(zoneDemand, zone_sf_avail)
-                            # water taken from surface zone and allocated to cell demand
-                            cell_sf_abstraction = np.maximum(0., divideValues(left_sf, zone_sf_avail) * zone_sf_abstraction)
-                            cell_sf_allocation = np.maximum(0., divideValues(self.var.unmetDemand,
-                                                                             zoneDemand) * zone_sf_abstraction)
-
-                            # sum up with other abstraction
-                            self.var.act_SurfaceWaterAbstract = self.var.act_SurfaceWaterAbstract + cell_sf_abstraction
-                            self.var.act_channelAbst = self.var.act_channelAbst + cell_sf_abstraction
-
-                            if self.var.sectorSourceAbstractionFractions:
-                                self.var.Channel_Domestic_fromZone = np.minimum(cell_sf_abstraction, pot_Channel_Domestic)
-                                self.var.Channel_Domestic += self.var.Channel_Domestic_fromZone
-
-                                self.var.Channel_Livestock_fromZone = np.minimum(
-                                    cell_sf_abstraction - self.var.Channel_Domestic_fromZone,
-                                    pot_Channel_Livestock)
-                                self.var.Channel_Livestock += self.var.Channel_Livestock_fromZone
-
-                                self.var.Channel_Industry_fromZone = np.minimum(
-                                    cell_sf_abstraction - self.var.Channel_Domestic_fromZone -
-                                    self.var.Channel_Livestock_fromZone,
-                                    pot_Channel_Industry)
-                                self.var.Channel_Industry += self.var.Channel_Industry_fromZone
-
-                                self.var.Channel_Irrigation_fromZone = np.minimum(
-                                    cell_sf_abstraction - self.var.Channel_Domestic_fromZone -
-                                    self.var.Channel_Livestock_fromZone - self.var.Channel_Industry_fromZone,
-                                    pot_Channel_Irrigation)
-                                self.var.Channel_Irrigation += self.var.Channel_Irrigation_fromZone
-
-                            # new potential groundwater abstraction
-                            self.var.pot_GroundwaterAbstract = \
-                                np.maximum(0., self.var.pot_GroundwaterAbstract - cell_sf_allocation)
-
-                            left_gw_demand = np.maximum(0., self.var.pot_GroundwaterAbstract - self.var.nonFossilGroundwaterAbs)
-                            left_gw_avail = self.var.readAvlStorGroundwater - self.var.nonFossilGroundwaterAbs
-                            zone_gw_avail = npareatotal(left_gw_avail * self.var.cellArea, self.var.allocation_zone)
-
-                            # for groundwater substract demand which is fulfilled by surface zone, calc abstraction and what
-                            # is left. zone_gw_demand = npareatotal(left_gw_demand, self.var.allocation_zone)
-                            zone_gw_demand = zoneDemand - zone_sf_abstraction
-                            zone_gw_abstraction = np.minimum(zone_gw_demand, zone_gw_avail)
-                            # zone_unmetdemand = np.maximum(0., zone_gw_demand - zone_gw_abstraction)
-
-                            # water taken from groundwater zone and allocated to cell demand
-                            cell_gw_abstraction = \
-                                np.maximum(0., divideValues(left_gw_avail, zone_gw_avail) * zone_gw_abstraction)
-                            cell_gw_allocation = \
-                                np.maximum(0., divideValues(left_gw_demand, zone_gw_demand) * zone_gw_abstraction)
-
-                            self.var.unmetDemand = np.maximum(0., left_gw_demand - cell_gw_allocation)
-                            self.var.nonFossilGroundwaterAbs = self.var.nonFossilGroundwaterAbs + cell_gw_abstraction
-
-                            # UNDER CONSTRUCTION
-                            if self.var.sectorSourceAbstractionFractions:
-                                self.var.GW_Domestic_fromZone = np.minimum(self.var.nonFossilGroundwaterAbs, pot_GW_Domestic)
-                                self.var.GW_Domestic += self.var.GW_Domestic_fromZone.copy()
-
-                                self.var.GW_Livestock_fromZone = np.minimum(
-                                    self.var.nonFossilGroundwaterAbs - self.var.GW_Domestic_fromZone,
-                                    pot_GW_Livestock)
-                                self.var.GW_Livestock += self.var.GW_Livestock_fromZone.copy()
-
-                                self.var.GW_Industry_fromZone = np.minimum(
-                                    self.var.nonFossilGroundwaterAbs -
-                                    self.var.GW_Domestic_fromZone - self.var.GW_Livestock_fromZone,
-                                    pot_GW_Industry)
-                                self.var.GW_Industry += self.var.GW_Industry_fromZone.copy()
-
-                                self.var.GW_Irrigation_fromZone = np.minimum(
-                                    self.var.nonFossilGroundwaterAbs - self.var.GW_Domestic_fromZone -
-                                    self.var.GW_Livestock_fromZone - self.var.GW_Industry_fromZone,
-                                    pot_GW_Irrigation)
-                                self.var.GW_Irrigation += self.var.GW_Irrigation_fromZone.copy()
-
-                            # end of zonal abstraction
+                            zoneDemand = npareatotal(unmet_Channel * self.var.cellArea, self.var.allocation_zone)
 
                         else:
-                            self.var.unmetDemand = self.var.pot_GroundwaterAbstract - self.var.nonFossilGroundwaterAbs
-                            if self.var.sectorSourceAbstractionFractions:
-                                self.var.GW_Domestic = pot_GW_Domestic
-                                self.var.GW_Industry = pot_GW_Industry
-                                self.var.GW_Livestock = pot_GW_Livestock
-                                self.var.GW_Irrigation = pot_GW_Irrigation
+                            zoneDemand = npareatotal(self.var.unmetDemand * self.var.cellArea, self.var.allocation_zone)
+
+                        zone_sf_avail = npareatotal(left_sf, self.var.allocation_zone)
+
+                        # zone abstraction is minimum of availability and demand
+                        zone_sf_abstraction = np.minimum(zoneDemand, zone_sf_avail)
+                        # water taken from surface zone and allocated to cell demand
+                        cell_sf_abstraction = np.maximum(0., divideValues(left_sf, zone_sf_avail) * zone_sf_abstraction)
+                        cell_sf_allocation = np.maximum(0., divideValues(self.var.unmetDemand,
+                                                                            zoneDemand) * zone_sf_abstraction)
+
+                        # sum up with other abstraction
+                        self.var.act_SurfaceWaterAbstract = self.var.act_SurfaceWaterAbstract + cell_sf_abstraction
+                        self.var.act_channelAbst = self.var.act_channelAbst + cell_sf_abstraction
+
+                        if self.var.sectorSourceAbstractionFractions:
+                            self.var.Channel_Domestic_fromZone = np.minimum(cell_sf_abstraction, pot_Channel_Domestic)
+                            self.var.Channel_Domestic += self.var.Channel_Domestic_fromZone
+
+                            self.var.Channel_Livestock_fromZone = np.minimum(
+                                cell_sf_abstraction - self.var.Channel_Domestic_fromZone,
+                                pot_Channel_Livestock)
+                            self.var.Channel_Livestock += self.var.Channel_Livestock_fromZone
+
+                            self.var.Channel_Industry_fromZone = np.minimum(
+                                cell_sf_abstraction - self.var.Channel_Domestic_fromZone -
+                                self.var.Channel_Livestock_fromZone,
+                                pot_Channel_Industry)
+                            self.var.Channel_Industry += self.var.Channel_Industry_fromZone
+
+                            self.var.Channel_Irrigation_fromZone = np.minimum(
+                                cell_sf_abstraction - self.var.Channel_Domestic_fromZone -
+                                self.var.Channel_Livestock_fromZone - self.var.Channel_Industry_fromZone,
+                                pot_Channel_Irrigation)
+                            self.var.Channel_Irrigation += self.var.Channel_Irrigation_fromZone
+
+                        # new potential groundwater abstraction
+                        self.var.pot_GroundwaterAbstract = \
+                            np.maximum(0., self.var.pot_GroundwaterAbstract - cell_sf_allocation)
+
+                        left_gw_demand = np.maximum(0., self.var.pot_GroundwaterAbstract - self.var.nonFossilGroundwaterAbs)
+                        left_gw_avail = self.var.readAvlStorGroundwater - self.var.nonFossilGroundwaterAbs
+                        zone_gw_avail = npareatotal(left_gw_avail * self.var.cellArea, self.var.allocation_zone)
+
+                        # for groundwater substract demand which is fulfilled by surface zone, calc abstraction and what
+                        # is left. zone_gw_demand = npareatotal(left_gw_demand, self.var.allocation_zone)
+                        zone_gw_demand = zoneDemand - zone_sf_abstraction
+                        zone_gw_abstraction = np.minimum(zone_gw_demand, zone_gw_avail)
+                        # zone_unmetdemand = np.maximum(0., zone_gw_demand - zone_gw_abstraction)
+
+                        # water taken from groundwater zone and allocated to cell demand
+                        cell_gw_abstraction = \
+                            np.maximum(0., divideValues(left_gw_avail, zone_gw_avail) * zone_gw_abstraction)
+                        cell_gw_allocation = \
+                            np.maximum(0., divideValues(left_gw_demand, zone_gw_demand) * zone_gw_abstraction)
+
+                        self.var.unmetDemand = np.maximum(0., left_gw_demand - cell_gw_allocation)
+                        self.var.nonFossilGroundwaterAbs = self.var.nonFossilGroundwaterAbs + cell_gw_abstraction
+
+                        # UNDER CONSTRUCTION
+                        if self.var.sectorSourceAbstractionFractions:
+                            self.var.GW_Domestic_fromZone = np.minimum(self.var.nonFossilGroundwaterAbs, pot_GW_Domestic)
+                            self.var.GW_Domestic += self.var.GW_Domestic_fromZone.copy()
+
+                            self.var.GW_Livestock_fromZone = np.minimum(
+                                self.var.nonFossilGroundwaterAbs - self.var.GW_Domestic_fromZone,
+                                pot_GW_Livestock)
+                            self.var.GW_Livestock += self.var.GW_Livestock_fromZone.copy()
+
+                            self.var.GW_Industry_fromZone = np.minimum(
+                                self.var.nonFossilGroundwaterAbs -
+                                self.var.GW_Domestic_fromZone - self.var.GW_Livestock_fromZone,
+                                pot_GW_Industry)
+                            self.var.GW_Industry += self.var.GW_Industry_fromZone.copy()
+
+                            self.var.GW_Irrigation_fromZone = np.minimum(
+                                self.var.nonFossilGroundwaterAbs - self.var.GW_Domestic_fromZone -
+                                self.var.GW_Livestock_fromZone - self.var.GW_Industry_fromZone,
+                                pot_GW_Irrigation)
+                            self.var.GW_Irrigation += self.var.GW_Irrigation_fromZone.copy()
+
+                        # end of zonal abstraction
 
                     else:
                         self.var.unmetDemand = self.var.pot_GroundwaterAbstract - self.var.nonFossilGroundwaterAbs
@@ -2298,12 +2229,20 @@ class water_demand:
                             self.var.GW_Livestock = pot_GW_Livestock
                             self.var.GW_Irrigation = pot_GW_Irrigation
 
+                else:
+                    self.var.unmetDemand = self.var.pot_GroundwaterAbstract - self.var.nonFossilGroundwaterAbs
+                    if self.var.sectorSourceAbstractionFractions:
+                        self.var.GW_Domestic = pot_GW_Domestic
+                        self.var.GW_Industry = pot_GW_Industry
+                        self.var.GW_Livestock = pot_GW_Livestock
+                        self.var.GW_Irrigation = pot_GW_Irrigation
 
-                    if self.var.includeIndusDomesDemand:  # all demands are taken into account
-                        self.var.act_nonIrrWithdrawal = np.copy(self.var.nonIrrDemand)
-                    self.var.act_irrWithdrawal = np.copy(self.var.totalIrrDemand)
 
-                    act_gw = np.copy(self.var.pot_GroundwaterAbstract)
+                if self.var.includeIndusDomesDemand:  # all demands are taken into account
+                    self.var.act_nonIrrWithdrawal = np.copy(self.var.nonIrrDemand)
+                self.var.act_irrWithdrawal = np.copy(self.var.totalIrrDemand)
+
+                act_gw = np.copy(self.var.pot_GroundwaterAbstract)
 
                 self.var.act_irrNonpaddyWithdrawal = self.var.fracVegCover[3] * self.var.irrDemand[3]
                 self.var.act_irrPaddyWithdrawal = self.var.fracVegCover[2] * self.var.irrDemand[2]
@@ -2317,13 +2256,6 @@ class water_demand:
                                                           self.var.fracVegCover[2]) * self.var.efficiencyPaddy
             self.var.act_irrConsumption[3] = divideValues(self.var.act_irrNonpaddyWithdrawal,
                                                           self.var.fracVegCover[3]) * self.var.efficiencyNonpaddy
-
-            if self.var.modflow:
-                if self.var.GW_pumping:  # pumping demand is sent to ModFlow (used in transient module)
-                    # modfPumpingM is initialized every "modflow_timestep" in "groundwater_modflow/transient.py"
-                    self.var.modfPumpingM += act_gw
-                    self.var.Pumping_daily = np.copy(act_gw)
-                    self.var.PumpingM3_daily = act_gw * self.var.cellArea
 
             if self.var.sectorSourceAbstractionFractions:
 

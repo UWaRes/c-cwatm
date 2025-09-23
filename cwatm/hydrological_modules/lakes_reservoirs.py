@@ -76,7 +76,6 @@ class lakes_reservoirs(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
     load_initial                           Settings initLoad holds initial conditions for variables                input
     wastewater_to_reservoirs                                                                                       --   
     saveInit                               Flag: if true initial conditions are saved                              --   
@@ -575,7 +574,7 @@ class lakes_reservoirs(object):
                     self.var.waterBodyTypCTemp = np.where((self.var.resYearC > year) & (self.var.waterBodyTypC == 3), 1,
                                                           self.var.waterBodyTypCTemp)
                     # we also need the uncompressed version to compute leakage
-                    if self.var.modflow or self.var.includeType4:
+                    if self.var.includeType4:
                         self.var.waterBodyTypTemp = np.where((self.var.resYear > year) & (self.var.waterBodyTyp == 2),
                                                              0, self.var.waterBodyTyp)
                         self.var.waterBodyTypTemp = np.where((self.var.resYear > year) & (self.var.waterBodyTyp == 4),
@@ -587,7 +586,7 @@ class lakes_reservoirs(object):
                     self.var.waterBodyTypCTemp = np.where(self.var.waterBodyTypC == 4, 0, self.var.waterBodyTypCTemp)
                     self.var.waterBodyTypCTemp = np.where(self.var.waterBodyTypC == 3, 1, self.var.waterBodyTypCTemp)
 
-                    if self.var.modflow or self.var.includeType4:
+                    if self.var.includeType4:
                         self.var.waterBodyTypTemp = np.where(self.var.waterBodyTyp == 2, 0, self.var.waterBodyTyp)
                         self.var.waterBodyTypTemp = np.where(self.var.waterBodyTyp == 4, 0, self.var.waterBodyTypTemp)
                         self.var.waterBodyTypTemp = np.where(self.var.waterBodyTyp == 3, 1, self.var.waterBodyTypTemp)

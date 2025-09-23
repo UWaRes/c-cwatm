@@ -1,4 +1,7 @@
 Changes made in CCWatM in comparison to the original version
+
+Everywhere:
+1. Remove Modflow flag
  
 In settingsfile.ini
 1.	Included option similar to calc_evaporation called no_meteo in settings file at line 29
@@ -19,7 +22,6 @@ In cwatm_dynamic.py
 
 In cwatm_initial.py
 1.	Remove initialization of evaporationPot (line 109, 149), snowfrost (line 111, 151), evaporation (114), capillarRise (119), interception (120), sealed_water (121), runoff_concentration (122, 162), water balance (126, 172), and water quality (127, 177)
-2. Remove Modflow flag
 
 In data_handling.py
 1.	In def metaNetCDF(): change ‘PrecipitationMaps’ to ‘RunoffMaps’ in line 481 to 495

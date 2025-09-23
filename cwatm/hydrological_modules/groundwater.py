@@ -21,17 +21,15 @@ class groundwater(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
     load_initial                           Settings initLoad holds initial conditions for variables                input
     storGroundwater                        Groundwater storage (non-fossil). This is primarily used when not usin  m    
-    specificYield                          groundwater reservoir parameters (if ModFlow is not used) used to comp  m    
+    specificYield                          groundwater reservoir parameters used to comp                           m    
     recessionCoeff                         groundwater storage times this coefficient gives baseflow               frac 
     readAvlStorGroundwater                 same as storGroundwater but equal to 0 when inferior to a treshold      m    
     prestorGroundwater                     storGroundwater at the beginning of each step                           m    
     sum_gwRecharge                         groundwater recharge                                                    m    
-    baseflow                               simulated baseflow (= groundwater discharge to river)                   m    
-    capillar                               Flow from groundwater to the third CWATM soil layer. Used with MODFLOW  m    
-    nonFossilGroundwaterAbs                Non-fossil groundwater abstraction. Used primarily without MODFLOW.     m    
+    baseflow                               simulated baseflow (= groundwater discharge to river)                   m     
+    nonFossilGroundwaterAbs                Non-fossil groundwater abstraction.                                     m    
     =====================================  ======================================================================  =====
 
     **Functions**
@@ -93,15 +91,10 @@ class groundwater(object):
         # get net recharge (percolation-capRise) and update storage:
         self.var.storGroundwater = np.maximum(0., self.var.storGroundwater + self.var.sum_gwRecharge)
 
-        # calculate baseflow and update storage:
-        if not(self.var.modflow):
-           # Groundwater baseflow from modflow or if modflow is not included calculate baseflow with linear storage function
-           self.var.baseflow = np.maximum(0., np.minimum(self.var.storGroundwater, self.var.recessionCoeff * self.var.storGroundwater))
-
+        # Calculate groundwater baseflow with linear storage function
+        self.var.baseflow = np.maximum(0., np.minimum(self.var.storGroundwater, self.var.recessionCoeff * self.var.storGroundwater))
+        # update groundwater storage
         self.var.storGroundwater = np.maximum(0., self.var.storGroundwater - self.var.baseflow)
-        if self.var.modflow:
-            # In the non-MODFLOW version, capillary rise is already dealt with previously be being removed from groundwater recharge
-            self.var.storGroundwater = np.maximum(0, self.var.storGroundwater - self.var.capillar)
 
         # to avoid small values and to avoid excessive abstractions from dry groundwater
         tresholdStorGroundwater = 0.00001  # 0.01 mm

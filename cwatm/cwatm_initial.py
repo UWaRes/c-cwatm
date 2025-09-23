@@ -105,9 +105,6 @@ class CWATModel_ini(DynamicModel):
         # reading of the metainformation of variables to put into output netcdfs
         metaNetCDF()
 
-        # no ModFlow
-        self.var.modflow = False
-
         ## MakMap: the maskmap is flexible e.g. col,row,x1,y1  or x1,x2,y1,y2
         # set the maskmap
         self.MaskMap = loadsetclone(self, 'MaskMap')
