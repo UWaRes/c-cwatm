@@ -22,6 +22,10 @@ from cwatm.hydrological_modules.water_demand.environmental_need import waterdema
 # PB1507
 from cwatm.management_modules.data_handling import *
 
+# processes: 
+# includeDesal - desalination, only allowed with sectorSourceAbstractionFractions
+# reservoir_transfers - inter-basin transfers, provided by Excel sheet
+
 
 class water_demand:
     """
@@ -36,7 +40,6 @@ class water_demand:
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    load_initial                           Settings initLoad holds initial conditions for variables                input
     readAvlStorGroundwater                 same as storGroundwater but equal to 0 when inferior to a treshold      m    
     includeDesal                                                                                                   --   
     unlimitedDesal                                                                                                 --   
@@ -287,169 +290,22 @@ class water_demand:
             # Sectors: Domestic, Industry, Livestock, Irrigation
             # Otherwise, one can distinguish only between surface and groundwater, irrigation and non-irrigation
 
-            if 'sectorSourceAbstractionFractions' in option:
-                if checkOption('sectorSourceAbstractionFractions'):
-                    #print('Sector- and source-specific abstraction fractions are activated (water_demand.py)')
-                    self.var.sectorSourceAbstractionFractions = True
-
-                    self.var.swAbstractionFraction_Channel_Domestic = loadmap(
-                        'swAbstractionFraction_Channel_Domestic')
-                    self.var.swAbstractionFraction_Channel_Livestock = loadmap(
-                        'swAbstractionFraction_Channel_Livestock')
-                    self.var.swAbstractionFraction_Channel_Industry = loadmap(
-                        'swAbstractionFraction_Channel_Industry')
-                    self.var.swAbstractionFraction_Channel_Irrigation = loadmap(
-                        'swAbstractionFraction_Channel_Irrigation')
-
-                    self.var.swAbstractionFraction_Lake_Domestic = loadmap(
-                        'swAbstractionFraction_Lake_Domestic')
-                    self.var.swAbstractionFraction_Lake_Livestock = loadmap(
-                        'swAbstractionFraction_Lake_Livestock')
-                    self.var.swAbstractionFraction_Lake_Industry = loadmap(
-                        'swAbstractionFraction_Lake_Industry')
-                    self.var.swAbstractionFraction_Lake_Irrigation = loadmap(
-                        'swAbstractionFraction_Lake_Irrigation')
-
-                    self.var.swAbstractionFraction_Res_Domestic = loadmap(
-                        'swAbstractionFraction_Res_Domestic')
-                    self.var.swAbstractionFraction_Res_Livestock = loadmap(
-                        'swAbstractionFraction_Res_Livestock')
-                    self.var.swAbstractionFraction_Res_Industry = loadmap(
-                        'swAbstractionFraction_Res_Industry')
-                    self.var.swAbstractionFraction_Res_Irrigation = loadmap(
-                        'swAbstractionFraction_Res_Irrigation')
-                        
-                    if self.var.includeDesal:
-                        self.var.othAbstractionFraction_Desal_Domestic = loadmap(
-                            'othAbstractionFraction_Desal_Domestic')
-                        self.var.othAbstractionFraction_Desal_Livestock = loadmap(
-                            'othAbstractionFraction_Desal_Livestock')
-                        self.var.othAbstractionFraction_Desal_Industry = loadmap(
-                            'othAbstractionFraction_Desal_Industry')
-                        self.var.othAbstractionFraction_Desal_Irrigation = loadmap(
-                            'othAbstractionFraction_Desal_Irrigation')
-
-                    if not checkOption('limitAbstraction'):
-                        self.var.gwAbstractionFraction_Domestic = 1 + globals.inZero.copy()
-                        self.var.gwAbstractionFraction_Livestock = 1 + globals.inZero.copy()
-                        self.var.gwAbstractionFraction_Industry = 1 + globals.inZero.copy()
-                        self.var.gwAbstractionFraction_Irrigation = 1 + globals.inZero.copy()
-                    else:
-                        self.var.gwAbstractionFraction_Domestic = loadmap(
-                            'gwAbstractionFraction_Domestic')
-                        self.var.gwAbstractionFraction_Livestock = loadmap(
-                            'gwAbstractionFraction_Livestock')
-                        self.var.gwAbstractionFraction_Industry = loadmap(
-                            'gwAbstractionFraction_Industry')
-                        self.var.gwAbstractionFraction_Irrigation = loadmap(
-                            'gwAbstractionFraction_Irrigation')
+            # initializations for sectorSourceAbstractionFractions (if True)
+            self.init_SourceAbstractionFractions()
 
 
             self.var.using_reservoir_command_areas = False
             self.var.load_command_areas = False
             
-            if checkOption('includeWaterBodies'):
-                    
-                # initiate reservoir_command_areas 
-                self.var.reservoir_command_areas = globals.inZero.copy()
 
-                if 'reservoir_command_areas' in binding:
-                    self.var.load_command_areas = True
+            # initialization of water bodies related variables (if True)
+            self.init_WaterBodies()
 
-                self.var.Water_conveyance_efficiency = 1.0 + globals.inZero
+            # initialization of lift areas related variables (if True)
+            self.init_lift_areas()
 
-                # load command areas
-                if self.var.load_command_areas:
-                    self.var.reservoir_command_areas = loadmap('reservoir_command_areas').astype(int)
-                    self.var.reservoir_command_areas = np.where(self.var.reservoir_command_areas<0,
-                                                                0,
-                                                                self.var.reservoir_command_areas)
-                else:
-                    self.var.reservoir_command_areas = self.var.waterBodyBuffer
-
-                # Lakes/restricted reservoirs within command areas are removed from the command area
-                self.var.reservoir_command_areas = np.where(self.var.waterBodyTyp_unchanged == 1,
-                                                        0, np.where(self.var.resId_restricted > 0, 0, self.var.reservoir_command_areas))
-                self.var.segmentArea = np.where(self.var.reservoir_command_areas > 0,
-                                                npareatotal(self.var.cellArea,
-                                                            self.var.reservoir_command_areas), self.var.cellArea)
-
-                # Water abstracted from reservoirs leaks along canals related to conveyance efficiency.
-                # Canals are a map where canal cells have the number of the command area they are associated with
-                # Command areas without canals experience leakage equally throughout the command area
-
-                if 'canals' in binding:
-                    self.var.canals = loadmap('canals').astype(int)
-                else:
-                    self.var.canals = globals.inZero.copy().astype(int)
-
-                # canals for reservoir conveyance and loss
-                self.var.canals = np.where(self.var.canals != self.var.reservoir_command_areas, 0, self.var.canals)
-
-                # When there are no set canals, the entire command area expereinces leakage
-                self.var.canals = np.where(npareamaximum(self.var.canals, self.var.reservoir_command_areas) == 0,
-                                        self.var.reservoir_command_areas, self.var.canals)
-                self.var.canalsArea = np.where(self.var.canals > 0, npareatotal(self.var.cellArea, self.var.canals),
-                                            0)
-                self.var.canalsAreaC = np.compress(self.var.compress_LR, self.var.canalsArea)
-
-            self.var.swAbstractionFraction_Lift_Domestic = globals.inZero.copy()
-            self.var.swAbstractionFraction_Lift_Livestock = globals.inZero.copy()
-            self.var.swAbstractionFraction_Lift_Industry = globals.inZero.copy()
-            self.var.swAbstractionFraction_Lift_Irrigation = globals.inZero.copy()
-
-            self.var.using_lift_areas = False
-            if 'using_lift_areas' in option:
-                if checkOption('using_lift_areas'):
-
-                    self.var.using_lift_areas = True
-                    self.var.lift_command_areas = loadmap('lift_areas').astype(int)
-
-                    if self.var.sectorSourceAbstractionFractions:
-                        self.var.swAbstractionFraction_Lift_Domestic = loadmap(
-                            'swAbstractionFraction_Lift_Domestic')
-                        self.var.swAbstractionFraction_Lift_Livestock = loadmap(
-                            'swAbstractionFraction_Lift_Livestock')
-                        self.var.swAbstractionFraction_Lift_Industry = loadmap(
-                            'swAbstractionFraction_Lift_Industry')
-                        self.var.swAbstractionFraction_Lift_Irrigation = loadmap(
-                            'swAbstractionFraction_Lift_Irrigation')
-
-            # -------------------------------------------
-            # partitioningGroundSurfaceAbstraction
-            # partitioning abstraction sources: groundwater and surface water
-            # partitioning based on local average baseflow (m3/s) and upstream average discharge (m3/s)
-            # estimates of fractions of groundwater and surface water abstractions
-            swAbstractionFraction = loadmap('swAbstractionFrac')
-
-            if swAbstractionFraction < 0:
-
-                averageBaseflowInput = loadmap('averageBaseflow')
-                averageDischargeInput = loadmap('averageDischarge')
-                # convert baseflow from m to m3/s
-                if returnBool('baseflowInM'):
-                    averageBaseflowInput = averageBaseflowInput * self.var.cellArea * self.var.InvDtSec
-
-                if checkOption('usingAllocSegments'):
-                    averageBaseflowInput = np.where(self.var.allocSegments > 0,
-                                                    npareaaverage(averageBaseflowInput, self.var.allocSegments),
-                                                    averageBaseflowInput)
-
-                    # averageUpstreamInput = np.where(self.var.allocSegments > 0,
-                    #                                npareamaximum(averageDischargeInput, self.var.allocSegments),
-                    #                                averageDischargeInput)
-
-                swAbstractionFraction = np.maximum(0.0, np.minimum(1.0, averageDischargeInput / np.maximum(1e-20,
-                                                                                                           averageDischargeInput + averageBaseflowInput)))
-                swAbstractionFraction = np.minimum(1.0, np.maximum(0.0, swAbstractionFraction))
-
-            self.var.swAbstractionFraction = globals.inZero.copy()
-            for No in range(4):
-                self.var.swAbstractionFraction += self.var.fracVegCover[No] * swAbstractionFraction
-            for No in range(4, 6):
-                # The motivation is to avoid groundwater on sealed and water land classes
-                # TODO: Groundwater pumping should be allowed over sealed land
-                self.var.swAbstractionFraction += self.var.fracVegCover[No]
+            # initialization of surface water abstraction fraction
+            self.init_swAbstractionFraction()
 
             # non-irrigation input maps have for each month or year the unit m/day (True) or million m3/month (False)
             self.var.demand_unit = True
@@ -481,162 +337,12 @@ class water_demand:
             arr = arr[cut2:cut3, cut0:cut1].astype(int)
             self.var.allocation_zone = compressArray(arr)
 
-            self.var.leakage = globals.inZero.copy()
-            self.var.pumping = globals.inZero.copy()
-            self.var.Pumping_daily = globals.inZero.copy()
-            self.var.allowedPumping = globals.inZero.copy()
-            self.var.leakageCanals_M = globals.inZero.copy()
-
-            self.var.act_nonIrrWithdrawal = globals.inZero.copy()
-            self.var.ratio_irrWithdrawalGW_month = globals.inZero.copy()
-            self.var.ratio_irrWithdrawalSW_month = globals.inZero.copy()
-            self.var.act_irrWithdrawalSW_month = globals.inZero.copy()
-            self.var.act_irrWithdrawalGW_month = globals.inZero.copy()
-
-            self.var.Desal_Domestic = globals.inZero.copy()
-            self.var.Desal_Industry = globals.inZero.copy()
-            self.var.Desal_Livestock = globals.inZero.copy()
-            self.var.Desal_Irrigation = globals.inZero.copy()
-            
-            self.var.Channel_Domestic = globals.inZero.copy()
-            self.var.Channel_Industry = globals.inZero.copy()
-            self.var.Channel_Livestock = globals.inZero.copy()
-            self.var.Channel_Irrigation = globals.inZero.copy()
-
-            self.var.Lift_Domestic = globals.inZero.copy()
-            self.var.Lift_Industry = globals.inZero.copy()
-            self.var.Lift_Livestock = globals.inZero.copy()
-            self.var.Lift_Irrigation = globals.inZero.copy()
-
-            self.var.Lake_Domestic = globals.inZero.copy()
-            self.var.Lake_Industry = globals.inZero.copy()
-            self.var.Lake_Livestock = globals.inZero.copy()
-            self.var.Lake_Irrigation = globals.inZero.copy()
-
-            self.var.Res_Domestic = globals.inZero.copy()
-            self.var.Res_Industry = globals.inZero.copy()
-            self.var.Res_Livestock = globals.inZero.copy()
-            self.var.Res_Irrigation = globals.inZero.copy()
-
-            self.var.GW_Domestic = globals.inZero.copy()
-            self.var.GW_Industry = globals.inZero.copy()
-            self.var.GW_Livestock = globals.inZero.copy()
-            self.var.GW_Irrigation = globals.inZero.copy()
-            self.var.abstractedLakeReservoirM3 = globals.inZero.copy()
-
-            self.var.ind_efficiency = 1.
-            self.var.dom_efficiency = 1.
-            self.var.liv_efficiency = 1
- 
-            self.var.act_DesalWaterAbstractM = globals.inZero.copy()
-            
-            self.var.act_nonIrrConsumption = globals.inZero.copy()
-            self.var.act_totalIrrConsumption = globals.inZero.copy()
-            self.var.act_totalWaterConsumption = globals.inZero.copy()
-            self.var.act_indConsumption = globals.inZero.copy()
-            self.var.act_domConsumption = globals.inZero.copy()
-            self.var.act_livConsumption = globals.inZero.copy()
-            self.var.returnflowIrr = globals.inZero.copy()
-            self.var.returnflowNonIrr = globals.inZero.copy()
-            self.var.pitLatrinToGW = globals.inZero.copy()
-            self.var.act_irrNonpaddyWithdrawal = globals.inZero.copy()
-            self.var.act_irrPaddyWithdrawal = globals.inZero.copy()
+            # initialization of water demand related variables
+            self.init_vars_WaterDemand()
 
         else:  # no water demand
-            self.var.ratio_irrWithdrawalGW_month = globals.inZero.copy()
-            self.var.ratio_irrWithdrawalSW_month = globals.inZero.copy()
-
-            self.var.nonIrrReturnFlowFraction = globals.inZero.copy()
-            self.var.nonFossilGroundwaterAbs = globals.inZero.copy()
-            self.var.nonIrruse = globals.inZero.copy()
-            self.var.act_indDemand = globals.inZero.copy()
-            self.var.act_domDemand = globals.inZero.copy()
-            self.var.act_livDemand = globals.inZero.copy()
-            self.var.nonIrrDemand = globals.inZero.copy()
-            self.var.totalIrrDemand = globals.inZero.copy()
-            self.var.totalWaterDemand = globals.inZero.copy()
-            self.var.act_irrWithdrawal = globals.inZero.copy()
-            self.var.act_nonIrrWithdrawal = globals.inZero.copy()
-            self.var.act_totalWaterWithdrawal = globals.inZero.copy()
-            self.var.act_indConsumption = globals.inZero.copy()
-            self.var.act_domConsumption = globals.inZero.copy()
-            self.var.act_livConsumption = globals.inZero.copy()
-
-            self.var.act_indWithdrawal = globals.inZero.copy()
-            self.var.act_domWithdrawal = globals.inZero.copy()
-            self.var.act_livWithdrawal = globals.inZero.copy()
-
-            self.var.act_totalIrrConsumption = globals.inZero.copy()
-            self.var.act_totalWaterConsumption = globals.inZero.copy()
-            self.var.unmetDemand = globals.inZero.copy()
-            self.var.unmetDemand_runningSum = globals.inZero.copy()
-            self.var.addtoevapotrans = globals.inZero.copy()
-            self.var.returnflowIrr = globals.inZero.copy()
-            self.var.returnflowNonIrr = globals.inZero.copy()
-            self.var.returnFlow = globals.inZero.copy()
-            self.var.unmetDemandPaddy = globals.inZero.copy()
-            self.var.unmetDemandNonpaddy = globals.inZero.copy()
-            self.var.ind_efficiency = 1.
-            self.var.dom_efficiency = 1.
-            self.var.liv_efficiency = 1
-            self.var.act_bigLakeResAbst = globals.inZero.copy()
-    
-            self.var.leakage = globals.inZero.copy()
-            self.var.pumping = globals.inZero.copy()
-            self.var.unmet_lost = globals.inZero.copy()
-            self.var.pot_GroundwaterAbstract = globals.inZero.copy()
-            self.var.leakageCanals_M = globals.inZero.copy()
-
-            self.var.WB_elec = globals.inZero.copy()
-            
-            self.var.Desal_Domestic = globals.inZero.copy()
-            self.var.Desal_Industry = globals.inZero.copy()
-            self.var.Desal_Livestock = globals.inZero.copy()
-            self.var.Desal_Irrigation = globals.inZero.copy()
-            
-            self.var.Channel_Domestic = globals.inZero.copy()
-            self.var.Channel_Industry = globals.inZero.copy()
-            self.var.Channel_Livestock = globals.inZero.copy()
-            self.var.Channel_Irrigation = globals.inZero.copy()
-
-            self.var.Lift_Domestic = globals.inZero.copy()
-            self.var.Lift_Industry = globals.inZero.copy()
-            self.var.Lift_Livestock = globals.inZero.copy()
-            self.var.Lift_Irrigation = globals.inZero.copy()
-
-            self.var.Lake_Domestic = globals.inZero.copy()
-            self.var.Lake_Industry = globals.inZero.copy()
-            self.var.Lake_Livestock = globals.inZero.copy()
-            self.var.Lake_Irrigation = globals.inZero.copy()
-
-            self.var.Res_Domestic = globals.inZero.copy()
-            self.var.Res_Industry = globals.inZero.copy()
-            self.var.Res_Livestock = globals.inZero.copy()
-            self.var.Res_Irrigation = globals.inZero.copy()
-
-            self.var.GW_Domestic = globals.inZero.copy()
-            self.var.GW_Industry = globals.inZero.copy()
-            self.var.GW_Livestock = globals.inZero.copy()
-            self.var.GW_Irrigation = globals.inZero.copy()
-
-            self.var.abstractedLakeReservoirM3 = globals.inZero.copy()
-
-            self.var.act_nonpaddyConsumption = globals.inZero.copy()
-            self.var.act_paddyConsumption = globals.inZero.copy()
-            self.var.act_irrNonpaddyWithdrawal = globals.inZero.copy()
-            self.var.act_irrPaddyWithdrawal = globals.inZero.copy()
-
-            self.var.Pumping_daily = globals.inZero.copy()
-
-            self.var.act_irrPaddyDemand = globals.inZero.copy()
-            self.var.act_irrNonpaddyDemand = globals.inZero.copy()
-            self.var.domesticDemand = globals.inZero.copy()
-            self.var.industryDemand = globals.inZero.copy()
-            self.var.livestockDemand = globals.inZero.copy()
-            
-            self.var.act_DesalWaterAbstractM = globals.inZero.copy()
-
-            self.var.act_nonIrrConsumption = globals.inZero.copy()
+            # initialization of water demand related variables
+            self.init_vars_noWaterDemand()
 
 
     def dynamic(self):
@@ -1782,3 +1488,357 @@ class water_demand:
 
             self.var.waterabstraction = self.var.nonFossilGroundwaterAbs + self.var.unmetDemand + \
                                         self.var.act_SurfaceWaterAbstract
+
+
+    # ---------------------------------------------------------------------------
+    # ===========================================================================
+    # ---------------------------------------------------------------------------
+
+    def init_SourceAbstractionFractions(self):
+        """
+        Initialization of sector- and source-specific abstraction fractions
+        """
+        if 'sectorSourceAbstractionFractions' in option:
+            if checkOption('sectorSourceAbstractionFractions'):
+                #print('Sector- and source-specific abstraction fractions are activated (water_demand.py)')
+                self.var.sectorSourceAbstractionFractions = True
+
+                self.var.swAbstractionFraction_Channel_Domestic = loadmap(
+                    'swAbstractionFraction_Channel_Domestic')
+                self.var.swAbstractionFraction_Channel_Livestock = loadmap(
+                    'swAbstractionFraction_Channel_Livestock')
+                self.var.swAbstractionFraction_Channel_Industry = loadmap(
+                    'swAbstractionFraction_Channel_Industry')
+                self.var.swAbstractionFraction_Channel_Irrigation = loadmap(
+                    'swAbstractionFraction_Channel_Irrigation')
+
+                self.var.swAbstractionFraction_Lake_Domestic = loadmap(
+                    'swAbstractionFraction_Lake_Domestic')
+                self.var.swAbstractionFraction_Lake_Livestock = loadmap(
+                    'swAbstractionFraction_Lake_Livestock')
+                self.var.swAbstractionFraction_Lake_Industry = loadmap(
+                    'swAbstractionFraction_Lake_Industry')
+                self.var.swAbstractionFraction_Lake_Irrigation = loadmap(
+                    'swAbstractionFraction_Lake_Irrigation')
+
+                self.var.swAbstractionFraction_Res_Domestic = loadmap(
+                    'swAbstractionFraction_Res_Domestic')
+                self.var.swAbstractionFraction_Res_Livestock = loadmap(
+                    'swAbstractionFraction_Res_Livestock')
+                self.var.swAbstractionFraction_Res_Industry = loadmap(
+                    'swAbstractionFraction_Res_Industry')
+                self.var.swAbstractionFraction_Res_Irrigation = loadmap(
+                    'swAbstractionFraction_Res_Irrigation')
+                    
+                if self.var.includeDesal:
+                    self.var.othAbstractionFraction_Desal_Domestic = loadmap(
+                        'othAbstractionFraction_Desal_Domestic')
+                    self.var.othAbstractionFraction_Desal_Livestock = loadmap(
+                        'othAbstractionFraction_Desal_Livestock')
+                    self.var.othAbstractionFraction_Desal_Industry = loadmap(
+                        'othAbstractionFraction_Desal_Industry')
+                    self.var.othAbstractionFraction_Desal_Irrigation = loadmap(
+                        'othAbstractionFraction_Desal_Irrigation')
+
+                if not checkOption('limitAbstraction'):
+                    self.var.gwAbstractionFraction_Domestic = 1 + globals.inZero.copy()
+                    self.var.gwAbstractionFraction_Livestock = 1 + globals.inZero.copy()
+                    self.var.gwAbstractionFraction_Industry = 1 + globals.inZero.copy()
+                    self.var.gwAbstractionFraction_Irrigation = 1 + globals.inZero.copy()
+                else:
+                    self.var.gwAbstractionFraction_Domestic = loadmap(
+                        'gwAbstractionFraction_Domestic')
+                    self.var.gwAbstractionFraction_Livestock = loadmap(
+                        'gwAbstractionFraction_Livestock')
+                    self.var.gwAbstractionFraction_Industry = loadmap(
+                        'gwAbstractionFraction_Industry')
+                    self.var.gwAbstractionFraction_Irrigation = loadmap(
+                        'gwAbstractionFraction_Irrigation')
+
+
+    def init_WaterBodies(self):
+        """
+        Initialization of water bodies related variables
+        """
+        if checkOption('includeWaterBodies'):
+                
+            # initiate reservoir_command_areas 
+            self.var.reservoir_command_areas = globals.inZero.copy()
+
+            if 'reservoir_command_areas' in binding:
+                self.var.load_command_areas = True
+
+            self.var.Water_conveyance_efficiency = 1.0 + globals.inZero
+
+            # load command areas
+            if self.var.load_command_areas:
+                self.var.reservoir_command_areas = loadmap('reservoir_command_areas').astype(int)
+                self.var.reservoir_command_areas = np.where(self.var.reservoir_command_areas<0,
+                                                            0,
+                                                            self.var.reservoir_command_areas)
+            else:
+                self.var.reservoir_command_areas = self.var.waterBodyBuffer
+
+            # Lakes/restricted reservoirs within command areas are removed from the command area
+            self.var.reservoir_command_areas = np.where(self.var.waterBodyTyp_unchanged == 1,
+                                                    0, np.where(self.var.resId_restricted > 0, 0, self.var.reservoir_command_areas))
+            self.var.segmentArea = np.where(self.var.reservoir_command_areas > 0,
+                                            npareatotal(self.var.cellArea,
+                                                        self.var.reservoir_command_areas), self.var.cellArea)
+
+            # Water abstracted from reservoirs leaks along canals related to conveyance efficiency.
+            # Canals are a map where canal cells have the number of the command area they are associated with
+            # Command areas without canals experience leakage equally throughout the command area
+
+            if 'canals' in binding:
+                self.var.canals = loadmap('canals').astype(int)
+            else:
+                self.var.canals = globals.inZero.copy().astype(int)
+
+            # canals for reservoir conveyance and loss
+            self.var.canals = np.where(self.var.canals != self.var.reservoir_command_areas, 0, self.var.canals)
+
+            # When there are no set canals, the entire command area experiences leakage
+            self.var.canals = np.where(npareamaximum(self.var.canals, self.var.reservoir_command_areas) == 0,
+                                    self.var.reservoir_command_areas, self.var.canals)
+            self.var.canalsArea = np.where(self.var.canals > 0, npareatotal(self.var.cellArea, self.var.canals),
+                                        0)
+            self.var.canalsAreaC = np.compress(self.var.compress_LR, self.var.canalsArea)
+
+
+    def init_lift_areas(self):
+        """
+        Initialization of lift areas related variables
+        """
+        self.var.swAbstractionFraction_Lift_Domestic = globals.inZero.copy()
+        self.var.swAbstractionFraction_Lift_Livestock = globals.inZero.copy()
+        self.var.swAbstractionFraction_Lift_Industry = globals.inZero.copy()
+        self.var.swAbstractionFraction_Lift_Irrigation = globals.inZero.copy()
+
+        self.var.using_lift_areas = False
+        if 'using_lift_areas' in option:
+            if checkOption('using_lift_areas'):
+
+                self.var.using_lift_areas = True
+                self.var.lift_command_areas = loadmap('lift_areas').astype(int)
+
+                if self.var.sectorSourceAbstractionFractions:
+                    self.var.swAbstractionFraction_Lift_Domestic = loadmap(
+                        'swAbstractionFraction_Lift_Domestic')
+                    self.var.swAbstractionFraction_Lift_Livestock = loadmap(
+                        'swAbstractionFraction_Lift_Livestock')
+                    self.var.swAbstractionFraction_Lift_Industry = loadmap(
+                        'swAbstractionFraction_Lift_Industry')
+                    self.var.swAbstractionFraction_Lift_Irrigation = loadmap(
+                        'swAbstractionFraction_Lift_Irrigation')
+
+
+    def init_swAbstractionFraction(self):
+        """
+        Initialization of surface water abstraction fraction
+        """
+        # -------------------------------------------
+        # partitioningGroundSurfaceAbstraction
+        # partitioning abstraction sources: groundwater and surface water
+        # partitioning based on local average baseflow (m3/s) and upstream average discharge (m3/s)
+        # estimates of fractions of groundwater and surface water abstractions
+        swAbstractionFraction = loadmap('swAbstractionFrac')
+
+        if swAbstractionFraction < 0:
+
+            averageBaseflowInput = loadmap('averageBaseflow')
+            averageDischargeInput = loadmap('averageDischarge')
+            # convert baseflow from m to m3/s
+            if returnBool('baseflowInM'):
+                averageBaseflowInput = averageBaseflowInput * self.var.cellArea * self.var.InvDtSec
+
+            if checkOption('usingAllocSegments'):
+                averageBaseflowInput = np.where(self.var.allocSegments > 0,
+                                                npareaaverage(averageBaseflowInput, self.var.allocSegments),
+                                                averageBaseflowInput)
+
+                # averageUpstreamInput = np.where(self.var.allocSegments > 0,
+                #                                npareamaximum(averageDischargeInput, self.var.allocSegments),
+                #                                averageDischargeInput)
+
+            swAbstractionFraction = np.maximum(0.0, np.minimum(1.0, averageDischargeInput / np.maximum(1e-20,
+                                                                                                        averageDischargeInput + averageBaseflowInput)))
+            swAbstractionFraction = np.minimum(1.0, np.maximum(0.0, swAbstractionFraction))
+
+        # weighting by land cover fractions
+        self.var.swAbstractionFraction = globals.inZero.copy()
+        for No in range(4):
+            self.var.swAbstractionFraction += self.var.fracVegCover[No] * swAbstractionFraction
+        for No in range(4, 6):
+            # The motivation is to avoid groundwater on sealed and water land classes
+            # TODO: Groundwater pumping should be allowed over sealed land
+            self.var.swAbstractionFraction += self.var.fracVegCover[No]
+
+
+    def init_vars_WaterDemand(self):
+        """
+        Initialization of water demand related variables
+        """
+        self.var.leakage = globals.inZero.copy()
+        self.var.pumping = globals.inZero.copy()
+        self.var.Pumping_daily = globals.inZero.copy()
+        self.var.allowedPumping = globals.inZero.copy()
+        self.var.leakageCanals_M = globals.inZero.copy()
+
+        self.var.act_nonIrrWithdrawal = globals.inZero.copy()
+        self.var.act_irrWithdrawalSW_month = globals.inZero.copy()
+        self.var.act_irrWithdrawalGW_month = globals.inZero.copy()
+
+        self.var.Desal_Domestic = globals.inZero.copy()
+        self.var.Desal_Industry = globals.inZero.copy()
+        self.var.Desal_Livestock = globals.inZero.copy()
+        self.var.Desal_Irrigation = globals.inZero.copy()
+        
+        self.var.Channel_Domestic = globals.inZero.copy()
+        self.var.Channel_Industry = globals.inZero.copy()
+        self.var.Channel_Livestock = globals.inZero.copy()
+        self.var.Channel_Irrigation = globals.inZero.copy()
+
+        self.var.Lift_Domestic = globals.inZero.copy()
+        self.var.Lift_Industry = globals.inZero.copy()
+        self.var.Lift_Livestock = globals.inZero.copy()
+        self.var.Lift_Irrigation = globals.inZero.copy()
+
+        self.var.Lake_Domestic = globals.inZero.copy()
+        self.var.Lake_Industry = globals.inZero.copy()
+        self.var.Lake_Livestock = globals.inZero.copy()
+        self.var.Lake_Irrigation = globals.inZero.copy()
+
+        self.var.Res_Domestic = globals.inZero.copy()
+        self.var.Res_Industry = globals.inZero.copy()
+        self.var.Res_Livestock = globals.inZero.copy()
+        self.var.Res_Irrigation = globals.inZero.copy()
+
+        self.var.GW_Domestic = globals.inZero.copy()
+        self.var.GW_Industry = globals.inZero.copy()
+        self.var.GW_Livestock = globals.inZero.copy()
+        self.var.GW_Irrigation = globals.inZero.copy()
+        self.var.abstractedLakeReservoirM3 = globals.inZero.copy()
+
+        self.var.ind_efficiency = 1.
+        self.var.dom_efficiency = 1.
+        self.var.liv_efficiency = 1
+
+        self.var.act_DesalWaterAbstractM = globals.inZero.copy()
+        
+        self.var.act_nonIrrConsumption = globals.inZero.copy()
+        self.var.act_totalIrrConsumption = globals.inZero.copy()
+        self.var.act_totalWaterConsumption = globals.inZero.copy()
+        self.var.act_indConsumption = globals.inZero.copy()
+        self.var.act_domConsumption = globals.inZero.copy()
+        self.var.act_livConsumption = globals.inZero.copy()
+        self.var.returnflowIrr = globals.inZero.copy()
+        self.var.returnflowNonIrr = globals.inZero.copy()
+        self.var.pitLatrinToGW = globals.inZero.copy()
+        self.var.act_irrNonpaddyWithdrawal = globals.inZero.copy()
+        self.var.act_irrPaddyWithdrawal = globals.inZero.copy()
+
+        self.var.ratio_irrWithdrawalGW_month = globals.inZero.copy()
+        self.var.ratio_irrWithdrawalSW_month = globals.inZero.copy()
+
+
+    def init_vars_noWaterDemand(self):
+        """
+        Initialization of water demand related variables when water demand is not included
+        """
+        self.var.ratio_irrWithdrawalGW_month = globals.inZero.copy()
+        self.var.ratio_irrWithdrawalSW_month = globals.inZero.copy()
+
+        self.var.nonIrrReturnFlowFraction = globals.inZero.copy()
+        self.var.nonFossilGroundwaterAbs = globals.inZero.copy()
+        self.var.nonIrruse = globals.inZero.copy()
+
+        self.var.act_indDemand = globals.inZero.copy()
+        self.var.act_domDemand = globals.inZero.copy()
+        self.var.act_livDemand = globals.inZero.copy()
+        self.var.nonIrrDemand = globals.inZero.copy()
+        self.var.totalIrrDemand = globals.inZero.copy()
+        self.var.totalWaterDemand = globals.inZero.copy()
+        self.var.act_irrWithdrawal = globals.inZero.copy()
+        self.var.act_nonIrrWithdrawal = globals.inZero.copy()
+        self.var.act_totalWaterWithdrawal = globals.inZero.copy()
+        self.var.act_indConsumption = globals.inZero.copy()
+        self.var.act_domConsumption = globals.inZero.copy()
+        self.var.act_livConsumption = globals.inZero.copy()
+
+        self.var.act_indWithdrawal = globals.inZero.copy()
+        self.var.act_domWithdrawal = globals.inZero.copy()
+        self.var.act_livWithdrawal = globals.inZero.copy()
+
+        self.var.act_totalIrrConsumption = globals.inZero.copy()
+        self.var.act_totalWaterConsumption = globals.inZero.copy()
+        self.var.unmetDemand = globals.inZero.copy()
+        self.var.unmetDemand_runningSum = globals.inZero.copy()
+        self.var.addtoevapotrans = globals.inZero.copy()
+        self.var.returnflowIrr = globals.inZero.copy()
+        self.var.returnflowNonIrr = globals.inZero.copy()
+        self.var.returnFlow = globals.inZero.copy()
+        self.var.unmetDemandPaddy = globals.inZero.copy()
+        self.var.unmetDemandNonpaddy = globals.inZero.copy()
+        self.var.ind_efficiency = 1.
+        self.var.dom_efficiency = 1.
+        self.var.liv_efficiency = 1
+        self.var.act_bigLakeResAbst = globals.inZero.copy()
+
+        self.var.leakage = globals.inZero.copy()
+        self.var.pumping = globals.inZero.copy()
+        self.var.unmet_lost = globals.inZero.copy()
+        self.var.pot_GroundwaterAbstract = globals.inZero.copy()
+        self.var.leakageCanals_M = globals.inZero.copy()
+
+        self.var.WB_elec = globals.inZero.copy()
+        
+        self.var.Desal_Domestic = globals.inZero.copy()
+        self.var.Desal_Industry = globals.inZero.copy()
+        self.var.Desal_Livestock = globals.inZero.copy()
+        self.var.Desal_Irrigation = globals.inZero.copy()
+        
+        self.var.Channel_Domestic = globals.inZero.copy()
+        self.var.Channel_Industry = globals.inZero.copy()
+        self.var.Channel_Livestock = globals.inZero.copy()
+        self.var.Channel_Irrigation = globals.inZero.copy()
+
+        self.var.Lift_Domestic = globals.inZero.copy()
+        self.var.Lift_Industry = globals.inZero.copy()
+        self.var.Lift_Livestock = globals.inZero.copy()
+        self.var.Lift_Irrigation = globals.inZero.copy()
+
+        self.var.Lake_Domestic = globals.inZero.copy()
+        self.var.Lake_Industry = globals.inZero.copy()
+        self.var.Lake_Livestock = globals.inZero.copy()
+        self.var.Lake_Irrigation = globals.inZero.copy()
+
+        self.var.Res_Domestic = globals.inZero.copy()
+        self.var.Res_Industry = globals.inZero.copy()
+        self.var.Res_Livestock = globals.inZero.copy()
+        self.var.Res_Irrigation = globals.inZero.copy()
+
+        self.var.GW_Domestic = globals.inZero.copy()
+        self.var.GW_Industry = globals.inZero.copy()
+        self.var.GW_Livestock = globals.inZero.copy()
+        self.var.GW_Irrigation = globals.inZero.copy()
+
+        self.var.abstractedLakeReservoirM3 = globals.inZero.copy()
+
+        self.var.act_nonpaddyConsumption = globals.inZero.copy()
+        self.var.act_paddyConsumption = globals.inZero.copy()
+        self.var.act_irrNonpaddyWithdrawal = globals.inZero.copy()
+        self.var.act_irrPaddyWithdrawal = globals.inZero.copy()
+
+        self.var.Pumping_daily = globals.inZero.copy()
+
+        self.var.act_irrPaddyDemand = globals.inZero.copy()
+        self.var.act_irrNonpaddyDemand = globals.inZero.copy()
+        self.var.domesticDemand = globals.inZero.copy()
+        self.var.industryDemand = globals.inZero.copy()
+        self.var.livestockDemand = globals.inZero.copy()
+        
+        self.var.act_DesalWaterAbstractM = globals.inZero.copy()
+
+        self.var.act_nonIrrConsumption = globals.inZero.copy()
+
