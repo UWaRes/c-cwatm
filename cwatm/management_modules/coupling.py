@@ -152,89 +152,32 @@ class MeteoForc2Var:
             return ffname
         else:
             raise InvalidModelflagError('fmodel_flag',self.fmodel_flag)
-
-    def interp_rootzoneSM_2d(ztop, zbott, sm_layers, in_zroot):
-        """
-        Calculate root zone soil moisture from soil moisture given in n layers for gridded data.
-        
-        Parameters
-        ----------
-        ztop, zbott (ndarray) : 1D arrays of layer top and layer bottom (m) (length: n_layers)
-        sm_layers (ndarray) : 3D array of soil moisture in n layers (%)
-        in_zroot (ndarray) : 2D array of root depth (m)
-        
-        Returns
-        -------
-        rootzoneSM (ndarray) : 2D array of root zone soil moisture (%)
-        """
-        ztop = np.asarray(ztop)
-        zbott = np.asarray(zbott)
-        sm_layers = np.asarray(sm_layers)
-        in_zroot = np.asarray(in_zroot)
-    
-        dlayer = zbott - ztop
-        n_layers, n_rows, n_cols = sm_layers.shape
-        max_depth = np.max(zbott)
-    
-        # Expand dimensions for broadcasting
-        ztop_3d = ztop[:, np.newaxis, np.newaxis]
-        zbott_3d = zbott[:, np.newaxis, np.newaxis]
-        dlayer_3d = dlayer[:, np.newaxis, np.newaxis]
-        zroot_3d = in_zroot[np.newaxis, :, :]
-    
-        # catch very small root depths
-        zroot_3d[zroot_3d<0.01] = 0.01
-    
-        # Masks
-        full_mask = zbott_3d < zroot_3d
-        fract_mask = ztop_3d < zroot_3d
-    
-        # Compute fractional depth
-        dfract = np.where(fract_mask, zroot_3d - ztop_3d, 0)
-        dfract = np.where(np.any(fract_mask, axis=0), dfract, 0)
-        last_fract_index = np.argmax(fract_mask[::-1], axis=0)
-        last_fract_index = fract_mask.shape[0] - 1 - last_fract_index
-    
-        # Gather last fractional layer values
-        sm_last = np.take_along_axis(sm_layers_3d, last_fract_index[np.newaxis, :, :], axis=0).squeeze(0)
-        dfract_last = np.take_along_axis(dfract, last_fract_index[np.newaxis, :, :], axis=0).squeeze(0)
-    
-        # Weighted sum for full layers
-        full_sum = np.sum(sm_layers * dlayer_3d * full_mask, axis=0)
-    
-        # Final root zone soil moisture
-        rootzoneSM = np.where(
-            in_zroot > max_depth,
-            np.sum(sm_layers * dlayer_3d, axis=0) / max_depth,
-            (full_sum + sm_last * dfract_last) / in_zroot
-        )
-    
-        return rootzoneSM
-          
-
            
-# ----- functions used for 'remo' -----
-def parse_dates(ds):
-    """
-    Converts the time axis of a REMO xarray dataset from absolute time values to datetime.
-    Functionality based on the pyremo package.
-    """
-    ds = ds.copy()
-    ds["time"] = [num2date(date) for date in ds.time]
-    return ds
+    # ----- functions used for 'remo' -----
+    @staticmethod
+    def parse_dates(ds):
+        """
+        Converts the time axis of a REMO xarray dataset from absolute time values to datetime.
+        Functionality based on the pyremo package.
+        """
+        ds = ds.copy()
+        ds["time"] = [num2date(date) for date in ds.time]
+        return ds
 
-def num2date(num):
-    """
-    Convert a numeric absolute date value to a datetime object.
-    Functionality based on the pyremo package.
-    """
-    frac, whole = math.modf(num)
-    date_str = str(int(whole))
-    date = datetime.datetime.strptime(date_str[0:8], "%Y%m%d")
-    datetime0 = date + datetime.timedelta(seconds=datetime.timedelta(days=1).total_seconds() * frac)
-    return datetime0
+    @staticmethod
+    def num2date(num):
+        """
+        Convert a numeric absolute date value to a datetime object.
+        Functionality based on the pyremo package.
+        """
+        frac, whole = math.modf(num)
+        date_str = str(int(whole))
+        date = datetime.datetime.strptime(date_str[0:8], "%Y%m%d")
+        datetime0 = date + datetime.timedelta(seconds=datetime.timedelta(days=1).total_seconds() * frac)
+        return datetime0
 
-# ----- function used to read forcing -----
+
+# ----- functions used to read, process and send forcing data -----
 def parse_settings_file(filepath):
     """
     Get values from C-CWatM settingsfile.
@@ -269,6 +212,7 @@ def parse_settings_file(filepath):
 
     return settings
 
+
 def read_modelrun_info(binding):
     """
     Extract the model run start time and number of simulated days from the C-CWatM settingsfile dictionary.
@@ -293,6 +237,65 @@ def read_modelrun_info(binding):
 
     return starttime, simulated_days
 
+
+def interp_rootzoneSM_2d(ztop, zbott, sm_layers, in_zroot):
+    """
+    Calculate root zone soil moisture from soil moisture given in n layers for gridded data.
+    
+    Parameters
+    ----------
+    ztop, zbott (ndarray) : 1D arrays of layer top and layer bottom (m) (length: n_layers)
+    sm_layers (ndarray) : 3D array of soil moisture in n layers (%)
+    in_zroot (ndarray) : 2D array of root depth (m)
+    
+    Returns
+    -------
+    rootzoneSM (ndarray) : 2D array of root zone soil moisture (%)
+    """
+    ztop = np.asarray(ztop)
+    zbott = np.asarray(zbott)
+    sm_layers = np.asarray(sm_layers)
+    in_zroot = np.asarray(in_zroot)
+
+    dlayer = zbott - ztop
+    n_layers, n_rows, n_cols = sm_layers.shape
+    max_depth = np.max(zbott)
+
+    # Expand dimensions for broadcasting
+    ztop_3d = ztop[:, np.newaxis, np.newaxis]
+    zbott_3d = zbott[:, np.newaxis, np.newaxis]
+    dlayer_3d = dlayer[:, np.newaxis, np.newaxis]
+    zroot_3d = in_zroot[np.newaxis, :, :]
+
+    # catch very small root depths
+    zroot_3d[zroot_3d<0.01] = 0.01
+
+    # Masks
+    full_mask = zbott_3d < zroot_3d
+    fract_mask = ztop_3d < zroot_3d
+
+    # Compute fractional depth
+    dfract = np.where(fract_mask, zroot_3d - ztop_3d, 0)
+    dfract = np.where(np.any(fract_mask, axis=0), dfract, 0)
+    last_fract_index = np.argmax(fract_mask[::-1], axis=0)
+    last_fract_index = fract_mask.shape[0] - 1 - last_fract_index
+
+    # Gather last fractional layer values
+    sm_last = np.take_along_axis(sm_layers_3d, last_fract_index[np.newaxis, :, :], axis=0).squeeze(0)
+    dfract_last = np.take_along_axis(dfract, last_fract_index[np.newaxis, :, :], axis=0).squeeze(0)
+
+    # Weighted sum for full layers
+    full_sum = np.sum(sm_layers * dlayer_3d * full_mask, axis=0)
+
+    # Final root zone soil moisture
+    rootzoneSM = np.where(
+        in_zroot > max_depth,
+        np.sum(sm_layers * dlayer_3d, axis=0) / max_depth,
+        (full_sum + sm_last * dfract_last) / in_zroot
+    )
+
+    return rootzoneSM
+    
     
 def init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,grid_clon=None,grid_clat=None):
     """
