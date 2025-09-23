@@ -74,7 +74,6 @@ class water_demand:
     wwtSewerCollection                                                                                             --   
     wwtOverflowOutM                                                                                                --   
     fracVegCover                           Fraction of specific land covers (0=forest, 1=grasslands, etc.)         %    
-    adminSegments                          Domestic agents                                                         Int  
     nonFossilGroundwaterAbs                Non-fossil groundwater abstraction.                                     m    
     includeWastewater                                                                                              --   
     reservoir_transfers_net_M3C                                                                                    --   
@@ -109,17 +108,10 @@ class water_demand:
     act_bigLakeResAbst                     Abstractions to satisfy demands from lakes and reservoirs               m    
     act_smallLakeResAbst                   Abstractions from small lakes at demand location                        m    
     waterdemandFixed                                                                                               --   
-    activate_domestic_agents               Input, True if activate_domestic_agents = True                          bool 
-    domesticDemand                         Domestic demand                                                         m    
-    swAbstractionFraction_domestic         With domestic agents, derived from surface water over total water requ  %    
+    domesticDemand                         Domestic demand                                                         m      
     demand_unit                                                                                                    --   
     pot_domesticConsumption                                                                                        --   
     sectorSourceAbstractionFractions                                                                               --   
-    swAbstractionFraction_Channel_Domesti  Input, Fraction of Domestic demands to be satisfied with Channel        %    
-    swAbstractionFraction_Lift_Domestic    Input, Fraction of Domestic demands to be satisfied with Lift           %    
-    swAbstractionFraction_Res_Domestic     Input, Fraction of Domestic demands to be satisfied with Reservoirs     %    
-    swAbstractionFraction_Lake_Domestic    Input, Fraction of Domestic demands to be satisfied with Lake           %    
-    gwAbstractionFraction_Domestic         Fraction of domestic water demand to be satisfied by groundwater        %    
     dom_efficiency                                                                                                 --   
     envFlow                                                                                                        --   
     industryDemand                                                                                                 --   
@@ -136,12 +128,8 @@ class water_demand:
     wwtSewerCollection_domestic                                                                                    --   
     wwtSewerCollection_industry                                                                                    --   
     includeIndusDomesDemand                Input, True if includeIndusDomesDemand = True                           bool 
-    activate_irrigation_agents             Input, True if activate_irrigation_agents = True                        bool 
-    relaxGWagent                                                                                                   --   
-    relaxSWagent                                                                                                   --   
     irrWithdrawalSW_max                                                                                            --   
     irrWithdrawalGW_max                                                                                            --   
-    relax_irrigation_agents                                                                                        --   
     relax_abstraction_fraction_initial                                                                             --   
     waterdemandFixedYear                                                                                           --   
     swAbstractionFraction_Channel_Livesto  Input, Fraction of Livestock demands to be satisfied from Channels      %    
@@ -191,8 +179,6 @@ class water_demand:
     allowedPumping                                                                                                 --   
     ratio_irrWithdrawalGW_month                                                                                    --   
     ratio_irrWithdrawalSW_month                                                                                    --   
-    act_irrWithdrawalSW_month              Running total agent surface water withdrawals for the month             m    
-    act_irrWithdrawalGW_month              Running total agent groundwater withdrawals for the month               m    
     Desal_Domestic                                                                                                 --   
     Desal_Industry                                                                                                 --   
     Desal_Livestock                                                                                                --   
@@ -310,64 +296,6 @@ class water_demand:
         self.var.includeWastewater = False
         if "includeWastewater" in option:
             self.var.includeWastewater = checkOption('includeWastewater')
-
-        # Variables related to agents =========================
-        self.var.activate_domestic_agents = False
-        if 'activate_domestic_agents' in option:
-            if checkOption('activate_domestic_agents'):
-                self.var.activate_domestic_agents = True
-
-        self.var.activate_irrigation_agents = False
-        if 'activate_irrigation_agents' in option:
-            if checkOption('activate_irrigation_agents'):
-                self.var.activate_irrigation_agents = True
-
-        self.var.relaxGWagent = globals.inZero.copy()
-        self.var.relaxSWagent = globals.inZero.copy()
-        self.var.irrWithdrawalSW_max = globals.inZero.copy()
-        self.var.irrWithdrawalGW_max = globals.inZero.copy()
-
-        self.var.relax_irrigation_agents = False
-        if 'relax_irrigation_agents' in option:
-            if checkOption('relax_irrigation_agents'):
-                self.var.relax_irrigation_agents = True
-
-        if 'adminSegments' in binding:
-            # adminSegments (administrative segment) are collections of cells that are associated together, ie Agents
-            # Cells within the same administrative segment have the same positive integer value.
-            # Cells with non-positive integer values are all associated together.
-            # Irrigation agents use adminSegments
-
-            self.var.adminSegments = loadmap('adminSegments').astype(int)
-            self.var.adminSegments = np.where(self.var.adminSegments > 0, self.var.adminSegments, 0)
-
-            if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                self.var.irrWithdrawalSW_max = npareaaverage(
-                    loadmap('irrigation_agent_SW_request_month_m3') + globals.inZero.copy(),
-                    self.var.adminSegments)
-
-                if 'relax_sw_agent' in binding:
-                    if self.var.loadInit:
-                        self.var.relaxSWagent = self.var.load_initial('relaxSWagent')
-                    else:
-                        self.var.relaxSWagent = loadmap('relax_sw_agent')
-
-            if 'irrigation_agent_GW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                self.var.irrWithdrawalGW_max = npareaaverage(
-                    loadmap('irrigation_agent_GW_request_month_m3') + globals.inZero.copy(),
-                    self.var.adminSegments)
-
-                if 'relax_gw_agent' in binding:
-                    if self.var.loadInit:
-                        self.var.relaxGWagent = self.var.load_initial('relaxGWagent')
-                    else:
-                        self.var.relaxGWagent = loadmap('relax_gw_agent')
-
-            if 'relax_abstraction_fraction_initial' in binding:
-                self.var.relax_abstraction_fraction_initial = loadmap(
-                    'relax_abstraction_fraction_initial') + globals.inZero.copy()
-            else:
-                self.var.relax_abstraction_fraction_initial = 0.5 + globals.inZero.copy()
 
         self.var.includeWastewaterPits = False
         if 'includePitLatrine' in option:
@@ -682,7 +610,6 @@ class water_demand:
             self.var.GW_Irrigation = globals.inZero.copy()
             self.var.abstractedLakeReservoirM3 = globals.inZero.copy()
 
-            self.var.swAbstractionFraction_domestic = 1 + globals.inZero.copy()
             self.var.ind_efficiency = 1.
             self.var.dom_efficiency = 1.
             self.var.liv_efficiency = 1
@@ -753,8 +680,6 @@ class water_demand:
             self.var.leakageCanals_M = globals.inZero.copy()
 
             self.var.WB_elec = globals.inZero.copy()
-            self.var.relaxSWagent = globals.inZero.copy()
-            self.var.relaxGWagent = globals.inZero.copy()
             
             self.var.Desal_Domestic = globals.inZero.copy()
             self.var.Desal_Industry = globals.inZero.copy()
@@ -787,7 +712,6 @@ class water_demand:
             self.var.GW_Irrigation = globals.inZero.copy()
 
             self.var.abstractedLakeReservoirM3 = globals.inZero.copy()
-            self.var.swAbstractionFraction_domestic = 1 + globals.inZero.copy()
 
             self.var.act_nonpaddyConsumption = globals.inZero.copy()
             self.var.act_paddyConsumption = globals.inZero.copy()
@@ -893,55 +817,6 @@ class water_demand:
                 self.var.act_irrWithdrawalSW_month = globals.inZero.copy()
                 self.var.act_irrWithdrawalGW_month = globals.inZero.copy()
 
-                if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-
-                    # These are read at the beginning of each month as they are updated by several relax functions
-                    # and turned off once satisfying request
-                    if self.var.sectorSourceAbstractionFractions:
-                        self.var.swAbstractionFraction_Channel_Irrigation = loadmap(
-                            'swAbstractionFraction_Channel_Irrigation')
-                        if self.var.using_lift_areas:
-                            self.var.swAbstractionFraction_Lift_Irrigation = loadmap(
-                                'swAbstractionFraction_Lift_Irrigation')
-                        self.var.swAbstractionFraction_Lake_Irrigation = loadmap(
-                            'swAbstractionFraction_Lake_Irrigation')
-                        self.var.swAbstractionFraction_Res_Irrigation = loadmap(
-                            'swAbstractionFraction_Res_Irrigation')
-                    else:
-                        self.var.swAbstractionFraction_Channel_Irrigation = 1 + globals.inZero.copy()
-                        if self.var.using_lift_areas:
-                            self.var.swAbstractionFraction_Lift_Irrigation = 1 + globals.inZero.copy()
-                        self.var.swAbstractionFraction_Lake_Irrigation = 1 + globals.inZero.copy()
-                        self.var.swAbstractionFraction_Res_Irrigation = 1 + globals.inZero.copy()
-
-                    if self.var.relax_irrigation_agents:
-                        self.var.swAbstractionFraction_Channel_Irrigation = np.where(self.var.relaxSWagent > 0,
-                                                                                     self.var.relax_abstraction_fraction_initial / self.var.relaxSWagent,
-                                                                                     self.var.swAbstractionFraction_Channel_Irrigation)
-                        if self.var.using_lift_areas:
-                            self.var.swAbstractionFraction_Lift_Irrigation = np.where(self.var.relaxSWagent > 0,
-                                                                                      self.var.relax_abstraction_fraction_initial / self.var.relaxSWagent,
-                                                                                      self.var.swAbstractionFraction_Lift_Irrigation)
-                        self.var.swAbstractionFraction_Lake_Irrigation = np.where(self.var.relaxSWagent > 0,
-                                                                                  self.var.relax_abstraction_fraction_initial / self.var.relaxSWagent,
-                                                                                  self.var.swAbstractionFraction_Lake_Irrigation)
-                        self.var.swAbstractionFraction_Res_Irrigation = np.where(self.var.relaxSWagent > 0,
-                                                                                 self.var.relax_abstraction_fraction_initial / self.var.relaxSWagent,
-                                                                                 self.var.swAbstractionFraction_Res_Irrigation)
-
-                if 'irrigation_agent_GW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-
-                    if self.var.sectorSourceAbstractionFractions and checkOption('limitAbstraction'):
-                        self.var.gwAbstractionFraction_Irrigation = loadmap(
-                            'gwAbstractionFraction_Irrigation')
-                    else:
-                        self.var.gwAbstractionFraction_Irrigation = 1 + globals.inZero.copy()
-
-                    if self.var.relax_irrigation_agents:
-                        self.var.gwAbstractionFraction_Irrigation = np.where(self.var.relaxGWagent > 0,
-                                                                             self.var.relax_abstraction_fraction_initial / self.var.relaxGWagent,
-                                                                             self.var.gwAbstractionFraction_Irrigation)
-
                 if 'commandAreasRelaxGwAbstraction' in binding and self.var.sectorSourceAbstractionFractions:
                     self.var.gwAbstractionFraction_Irrigation = np.where(self.var.reservoir_command_areas > 0,
                                                                          0.01,
@@ -1005,10 +880,6 @@ class water_demand:
                 pot_Channel_Irrigation = np.minimum(self.var.swAbstractionFraction_Channel_Irrigation * self.var.totalIrrDemand, \
                     self.var.totalIrrDemand - self.var.Desal_Irrigation)
 
-                if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                    pot_Channel_Irrigation = np.minimum(pot_Channel_Irrigation,
-                                                        self.var.irrWithdrawalSW_max*self.var.InvCellArea)
-
                 pot_channelAbst = pot_Channel_Domestic + pot_Channel_Livestock + pot_Channel_Industry + pot_Channel_Irrigation
 
                 self.var.act_SurfaceWaterAbstract = np.minimum(self.var.readAvlChannelStorageM, pot_channelAbst)
@@ -1052,10 +923,6 @@ class water_demand:
                     self.var.industryDemand - self.var.Desal_Industry - self.var.Channel_Industry )
                 pot_Lift_Irrigation = np.minimum(self.var.swAbstractionFraction_Lift_Irrigation * self.var.totalIrrDemand, \
                     self.var.totalIrrDemand - self.var.Desal_Irrigation - self.var.Channel_Irrigation)
-
-                if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                    pot_Lift_Irrigation = np.maximum(pot_Lift_Irrigation,
-                                                    self.var.irrWithdrawalSW_max * self.var.InvCellArea)
 
                 pot_liftAbst = pot_Lift_Domestic + pot_Lift_Livestock + pot_Lift_Industry + pot_Lift_Irrigation
 
@@ -1666,10 +1533,6 @@ class water_demand:
                         self.var.totalIrrDemand - self.var.Desal_Irrigation - self.var.Channel_Irrigation - \
                             self.var.Lift_Irrigation - self.var.wwt_Irrigation - self.var.Lake_Irrigation)
 
-                    if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                        pot_Res_Irrigation = np.minimum(pot_Res_Irrigation,
-                                                        self.var.irrWithdrawalSW_max*self.var.InvCellArea)
-
                     # remainNeed2 = pot_Res_Domestic + pot_Res_Livestock + pot_Res_Industry + pot_Res_Irrigation
                     remainNeed2 = pot_Res_Irrigation
 
@@ -1965,11 +1828,6 @@ class water_demand:
                     self.var.gwAbstractionFraction_Irrigation * self.var.totalIrrDemand,                    
                     self.var.totalIrrDemand - self.var.Desal_Irrigation - self.var.Channel_Irrigation - \
                     self.var.Lift_Irrigation - self.var.wwt_Irrigation - self.var.Lake_Irrigation - self.var.Res_Irrigation)
-
-
-                if 'irrigation_agent_GW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                    pot_GW_Irrigation = np.minimum(pot_GW_Irrigation,
-                                                        self.var.irrWithdrawalGW_max*self.var.InvCellArea)
 
 
                 self.var.pot_GroundwaterAbstract = pot_GW_Domestic + pot_GW_Livestock + pot_GW_Industry + pot_GW_Irrigation
@@ -2387,59 +2245,6 @@ class water_demand:
             self.var.waterabstraction = self.var.nonFossilGroundwaterAbs + self.var.unmetDemand + \
                                         self.var.act_SurfaceWaterAbstract
 
-            if 'adminSegments' in binding and checkOption('limitAbstraction'):
-
-                self.var.act_irrWithdrawalSW_month += npareatotal(act_irrWithdrawalSW * self.var.cellArea,
-                                                                  self.var.adminSegments)
-
-                if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                    self.var.swAbstractionFraction_Channel_Irrigation = np.where(
-                        self.var.act_irrWithdrawalSW_month > self.var.irrWithdrawalSW_max, 0,
-                        self.var.swAbstractionFraction_Channel_Irrigation)
-
-                    self.var.swAbstractionFraction_Lift_Irrigation = np.where(
-                        self.var.act_irrWithdrawalSW_month > self.var.irrWithdrawalSW_max, 0,
-                        self.var.swAbstractionFraction_Lift_Irrigation)
-
-                    self.var.swAbstractionFraction_Lake_Irrigation = np.where(
-                        self.var.act_irrWithdrawalSW_month > self.var.irrWithdrawalSW_max, 0,
-                        self.var.swAbstractionFraction_Lake_Irrigation)
-
-                    self.var.swAbstractionFraction_Res_Irrigation = np.where(
-                        self.var.act_irrWithdrawalSW_month > self.var.irrWithdrawalSW_max, 0,
-                        self.var.swAbstractionFraction_Res_Irrigation)
-
-                    self.var.ratio_irrWithdrawalSW_month \
-                        = self.var.act_irrWithdrawalSW_month / self.var.irrWithdrawalSW_max
-
-            if 'adminSegments' in binding and checkOption('limitAbstraction'):
-                self.var.act_irrWithdrawalGW_month += npareatotal(act_irrWithdrawalGW * self.var.cellArea,
-                                                                  self.var.adminSegments)
-                if 'irrigation_agent_GW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                    self.var.gwAbstractionFraction_Irrigation = np.where(
-                        self.var.act_irrWithdrawalGW_month > self.var.irrWithdrawalGW_max, 0,
-                        self.var.gwAbstractionFraction_Irrigation)
-
-                    self.var.ratio_irrWithdrawalGW_month \
-                        = self.var.act_irrWithdrawalGW_month / self.var.irrWithdrawalGW_max
-
-            if self.var.relax_irrigation_agents:
-                if dateVar['currDate'].day == 10:
-                    if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                        self.var.relaxSWagent += np.where(self.var.ratio_irrWithdrawalSW_month > 0.95, 1, 0)
-                    if 'irrigation_agent_GW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                        self.var.relaxGWagent += np.where(self.var.ratio_irrWithdrawalGW_month > 0.95, 1, 0)
-
-                # This will decrease values that have increased, but not on agents that were never too large
-                if dateVar['currDate'].day == 28:
-                    if 'irrigation_agent_SW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                        self.var.relaxSWagent -= np.where(self.var.relaxSWagent > 0,
-                                                          np.where(self.var.ratio_irrWithdrawalSW_month > 0.98, 0, 1),
-                                                          0)
-                    if 'irrigation_agent_GW_request_month_m3' in binding and self.var.activate_irrigation_agents:
-                        self.var.relaxGWagent -= np.where(self.var.relaxGWagent > 0,
-                                                          np.where(self.var.ratio_irrWithdrawalGW_month > 0.98, 0, 1),
-                                                          0)
 
             # ---------------------------------------------
             # testing

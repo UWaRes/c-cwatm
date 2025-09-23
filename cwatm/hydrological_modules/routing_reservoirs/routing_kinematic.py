@@ -93,11 +93,7 @@ class routing_kinematic(object):
     humanUse                                                                                                       --   
     natureUse                                                                                                      --   
     ETRefAverage_segments                                                                                          --   
-    precipEffectiveAverage_segments                                                                                --   
-    head_segments                          Simulated water level, averaged over adminSegments [masl]               --   
-    gwdepth_adjusted_segments              Adjusted depth to groundwater table, averaged over adminSegments        m    
-    gwdepth_segments                       Groundwater depth, averaged over adminSegments                          m    
-    adminSegments_area                     Spatial area of domestic agents                                         m2   
+    precipEffectiveAverage_segments                                                                                --     
     runoff                                                                                                         --   
     openWaterEvap                          Simulated evaporation from open areas                                   m    
     infiltration                           Water actually infiltrating the soil                                    m    
@@ -107,7 +103,6 @@ class routing_kinematic(object):
     gwdepth_adjusted                       Adjusted depth to groundwater table                                     m    
     gwdepth                                Depth to groundwater table                                              m    
     fracVegCover                           Fraction of specific land covers (0=forest, 1=grasslands, etc.)         %    
-    adminSegments                          Domestic agents                                                         Int  
     lakeResStorage                                                                                                 --   
     act_SurfaceWaterAbstract               Surface water abstractions                                              m    
     addtoevapotrans                        Irrigation application loss to evaporation                              m    
