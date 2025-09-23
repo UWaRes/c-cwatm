@@ -69,10 +69,7 @@ class water_demand:
     MtoM3                                  Coefficient to change units                                             --   
     InvDtSec                                                                                                       --   
     InvCellArea                            Inverse of cell area of each simulated mesh                             1/m2 
-    M3toM                                  Coefficient to change units                                             --   
-    GW_pumping                             Input, True if Groundwater_pumping=True                                 bool 
-    availableGWStorageFraction                                                                                     --    
-    gwstorage_full                         Groundwater storage at full capacity                                    m    
+    M3toM                                  Coefficient to change units                                             --    
     wwtColArea                                                                                                     --   
     wwtSewerCollection                                                                                             --   
     wwtOverflowOutM                                                                                                --   
@@ -272,7 +269,6 @@ class water_demand:
     GW_Livestock_fromZone                                                                                          --   
     GW_Industry_fromZone                                                                                           --   
     GW_Irrigation_fromZone                                                                                         --   
-    PumpingM3_daily                                                                                                --   
     unmet_lostirr                          Fossil water for irrigation that disappears instead of becoming return  m    
     unmet_lostNonirr                       Fossil water for non-irrigation that disappears instead of becoming re  m    
     wwtEffluentsGenerated_domestic                                                                                 --   
