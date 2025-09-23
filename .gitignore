@@ -1,4 +1,7 @@
-cwatm/management_modules/__pycache__/*
+cwatm/__pycache__/*
+cwatm/*/__pycache__/*
+cwatm/*/*/__pycache__/*
+cwatm/*/*/*/__pycache__/*
 ccwatm.e
 ccwatm.o
 debug.*
