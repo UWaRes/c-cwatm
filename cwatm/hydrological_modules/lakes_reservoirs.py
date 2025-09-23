@@ -77,7 +77,6 @@ class lakes_reservoirs(object):
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
     load_initial                           Settings initLoad holds initial conditions for variables                input
-    wastewater_to_reservoirs                                                                                       --   
     saveInit                               Flag: if true initial conditions are saved                              --   
     waterBodyID                            lakes/reservoirs map with a single ID for each lake/reservoir           --   
     waterBodyOut                           biggest outlet (biggest accumulation of ldd network) of a waterbody     --   
@@ -104,7 +103,6 @@ class lakes_reservoirs(object):
     resVolumeC                             compressed map of reservoir volume                                      Milli
     resId_restricted                                                                                               --   
     waterBodyBuffer                                                                                                --   
-    waterBodyBuffer_wwt                                                                                            --   
     lakeArea                               area of each lake/reservoir                                             m2   
     lakeAreaC                              compressed map of the area of each lake/reservoir                       m2   
     lakeDis0                               compressed map average discharge at the outlet of a lake/reservoir      m3/s 
@@ -179,7 +177,6 @@ class lakes_reservoirs(object):
     inflowDt                                                                                                       --   
     prelakeResStorage                                                                                              --   
     runoff                                                                                                         --   
-    includeWastewater                                                                                              --   
     reservoir_transfers_net_M3C                                                                                    --   
     reservoir_transfers_in_M3C                                                                                     --   
     reservoir_transfers_out_M3C                                                                                    --   
@@ -278,10 +275,6 @@ class lakes_reservoirs(object):
 
             # load lakes/reservoirs map with a single ID for each lake/reservoir
             self.var.waterBodyID = loadmap('waterBodyID').astype(np.int64)
-            
-            self.var.includeWastewater = False
-            if "includeWastewater" in option:
-                self.var.includeWastewater = checkOption('includeWastewater')
                 
             # calculate biggest outlet = biggest accumulation of ldd network
             lakeResmax = npareamaximum(self.var.UpArea1, self.var.waterBodyID)
@@ -337,24 +330,16 @@ class lakes_reservoirs(object):
             
             # needs to be changed - maybe update all reservoir to spreadsheet
             self.var.resId_restricted = globals.inZero.copy()
-            if self.var.includeWastewater:
-                resIdList = np.unique(list(self.var.wastewater_to_reservoirs.values()))
-                for rid in resIdList:
-                    self.var.resId_restricted += np.where(self.var.waterBodyID == rid, rid, 0)
             
             # Create a buffer around water bodies as command areas for lakes and reservoirs
             if checkOption('includeWaterDemand'):
                 waterBody_UnRestricted = self.var.waterBodyID.copy()
                 
-                if self.var.includeWastewater:
-                    waterBody_UnRestricted = np.where(np.in1d(waterBody_UnRestricted, self.var.resId_restricted), 0, waterBody_UnRestricted)
                 rectangular = 1
                 if "buffer_waterbodies" in binding:
                     rectangular = int(loadmap('buffer_waterbodies'))
                 
                 self.var.waterBodyBuffer = buffer_waterbody(rectangular, decompress(waterBody_UnRestricted))
-                if self.var.includeWastewater:
-                    self.var.waterBodyBuffer_wwt = buffer_waterbody(rectangular, decompress(self.var.resId_restricted))
                 
                 #rectangular = 1
                 #if "buffer_waterbodies" in binding:
@@ -555,7 +540,7 @@ class lakes_reservoirs(object):
 
                 # water body types:
                 # - 4 = water distribution reservoirs, input = output; only allows input from specified sources,
-                #       e.g., inter-basin transfers, wastewater treatment, desalination, etc.
+                #       e.g., inter-basin transfers, desalination, etc.
                 # - 3 = reservoirs and lakes (used as reservoirs but before the year of construction as lakes)
                 # - 2 = reservoirs (regulated discharge)
                 # - 1 = lakes (weirFormula)

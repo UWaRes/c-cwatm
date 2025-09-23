@@ -32,8 +32,6 @@ class initcondition(object):
     unlimitedDesal                                                                                                 --   
     desalAnnualCap                                                                                                 --   
     reservoir_transfers                    [['Giving reservoir'][i], ['Receiving reservoir'][i], ['Fraction of li  array
-    wwt_def                                                                                                        --   
-    wastewater_to_reservoirs                                                                                       --   
     loadInit                               Flag: if true initial conditions are loaded                             --   
     initLoadFile                           load file name of the initial condition data                            --   
     saveInit                               Flag: if true initial conditions are saved                              --   
@@ -85,32 +83,6 @@ class initcondition(object):
                 reservoir_transfers.append(transfer)
         return reservoir_transfers
     
- 
-    # To initialize wastewater2reservoir; and wastewater attributes
-    def wastewater_to_reservoirs(self, xl_settings_file_path):
-        # fix - build an object with wwtp_id as key and res as values.
-        # get unique wwtp_id and iterate
-        pd = importlib.import_module("pandas", package=None)
-        df = pd.read_excel(xl_settings_file_path, sheet_name='Wastewater_to_reservoirs')
-        
-       
-        wwtp_to_reservoir = {}
-
-        for wwtpid in df['Sending WWTP'].unique():
-            wwtp_to_reservoir[wwtpid] = df[df['Sending WWTP'] == wwtpid]['Receiving Reservoir'].tolist()
-            #transfer = [df['Sending WWTP'][i], df['Receiving Reservoir'][i]]
-            #wwtp_to_reservoir.append(transfer)
-        return wwtp_to_reservoir
-    
-    def wasterwater_def(self, xl_settings_file_path):
-        pd = importlib.import_module("pandas", package=None)
-        df = pd.read_excel(xl_settings_file_path, sheet_name='Wastewater_def')
-        
-        cols = ['From year', 'To year', 'Volume (cubic m per day)', 'Treatment days', 'Treatment level', 'Export share', 'Domestic', 'Industrial', 'min_HRT']
-        wwtp_definitions = {}
-        for wwtpid in df['WWTP ID'].unique():
-            wwtp_definitions[wwtpid] = df[df['WWTP ID'] == wwtpid][cols].to_numpy()
-        return wwtp_definitions
     
     def desalinationCapacity(self, xl_settings_file_path):
         pd = importlib.import_module("pandas", package=None)
@@ -247,14 +219,6 @@ class initcondition(object):
                 if 'Excel_settings_file' in binding:
                     xl_settings_file_path = cbinding('Excel_settings_file')
                     self.var.reservoir_transfers = self.reservoir_transfers(xl_settings_file_path)
-        
-        if 'includeWastewater' in option:
-            if checkOption('includeWastewater'):
-                if 'Excel_settings_file' in binding:
-                    xl_settings_file_path = cbinding('Excel_settings_file')
-                    self.var.wwt_def = self.wasterwater_def(xl_settings_file_path)
-                    self.var.wastewater_to_reservoirs = self.wastewater_to_reservoirs(xl_settings_file_path)
-
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Load init file - a single file can be loaded - needs path and file name

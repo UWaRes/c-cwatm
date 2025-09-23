@@ -169,11 +169,8 @@ class landcoverType(object):
     soildepth12                            Total thickness of layer 2 and 3                                        m    
     leakageriver_factor                                                                                            --   
     leakagelake_factor                                                                                             --    
-    wwtUrbanLeakage                                                                                                --   
-    wwtColArea                                                                                                     --   
     urbanleak                                                                                                      --   
     fracVegCover                           Fraction of specific land covers (0=forest, 1=grasslands, etc.)         %    
-    includeWastewater                                                                                              --   
     lakeVolumeM3C                          compressed map of lake volume                                           m3   
     lakeStorageC                                                                                                   --   
     reservoirStorageM3C                                                                                            --   
