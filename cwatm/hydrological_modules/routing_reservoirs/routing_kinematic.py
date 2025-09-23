@@ -301,12 +301,6 @@ class routing_kinematic(object):
         #self.var.channelAlphaPcr = decompress(self.var.channelAlpha)
         #self.var.chanLengthPcr = decompress(self.var.chanLength)
 
-
-        if checkOption('calcWaterBalance'):
-            self.var.catchmentAll = (loadmap('MaskMap',local = True) * 0.).astype(np.int)
-            #self.var.catchmentNo = int(loadmap('CatchmentNo'))
-            #self.var.sumbalance = 0
-
         self.var.Xcel = []
 
 
@@ -329,11 +323,6 @@ class routing_kinematic(object):
         # if routing is not needed return
         if not(checkOption('includeRouting')):
             return
-
-        if checkOption('calcWaterBalance'):
-            self.var.prechannelStorage = self.var.channelStorage.copy()
-            if checkOption('includeWaterBodies'):
-                self.var.prelakeResStorage = self.var.lakeResStorage.copy()
 
 
         Qnew = globals.inZero.copy()
