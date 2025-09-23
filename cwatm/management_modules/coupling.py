@@ -212,6 +212,7 @@ def parse_settings_file(filepath):
 
     return settings
 
+
 def read_modelrun_info(binding):
     """
     Extract the model run start time and number of simulated days from the C-CWatM settingsfile dictionary.
