@@ -137,8 +137,13 @@ class readmeteo(object):
             # read all forcing data at once
             self.var.QMaps = 'RunoffMaps' 
             self.var.GWMaps = 'GWMaps'
-            self.var.OWEMaps = 'OWEMaps'
             self.var.SMMaps = 'SMMaps'
+            if binding['OWE_meth']=='OWE':
+                self.var.OWEMaps = 'OWEMaps'
+            if binding['OWE_meth']=='T':
+                self.var.TMaps = 'TMaps'
+            if binding['OWE_meth']=='Rnet':
+                self.var.RnMaps = 'RnMaps'
             
             # Read landsurface maps
             meteomaps = [self.var.QMaps, self.var.GWMaps, self.var.SMMaps, self.var.OWEMaps] #Peter Greve Test
@@ -190,10 +195,24 @@ class readmeteo(object):
             # read rootzone soil moisture
             self.var.rootzoneSM, MaskMapBoundary = readmeteodata(self.var.SMMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
             self.var.rootzoneSM = np.maximum(0., self.var.rootzoneSM)
-            
-            # read open water evaporation
-            self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e
+
+            if binding['OWE_meth']=='OWE':
+                # read open water evaporation
+                self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e
+
+            if binding['OWE_meth']=='T':
+                # read temperature
+                self.var.Toffset = loadmap('Temp_offset')
+                self.var.Tin, MaskMapBoundary = readmeteodata(self.var.TMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = 13.97 * 0.0495 * exp(0.062 * self.var.Tin+self.var.Toffset )/1000 # in m/day 
+                # based on Hamon (1963) and pyet Python package
+
+            if binding['OWE_meth']=='Rnet':
+                # read net radiation
+                self.var.Rnetfact = loadmap('Rnet_coversion')
+                self.var.Rnet, MaskMapBoundary = readmeteodata(self.var.RnMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = ((0.8 * self.var.Rnet*self.var.Rnetfact)/28.94)/1000 # based on Milly and Dunne, 2016
             
         elif binding['coupl_flag']=='offline_coupl':   
             # for each time step: read forcing file and convert to C-CWatM grid
