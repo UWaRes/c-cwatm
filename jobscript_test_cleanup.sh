@@ -4,7 +4,7 @@
 #SBATCH --partition=shared         # Specify partition name for job execution
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=00:45:00                       # Set a limit on the total run time
+#SBATCH --time=00:05:00                       # Set a limit on the total run time
 #SBATCH --account=ch0636                     # Charge resources on this project account
 #SBATCH --output=ccwatm.o
 #SBATCH --error=ccwatm.e

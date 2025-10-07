@@ -308,7 +308,7 @@ class water_demand:
                 self.var.demand_unit = returnBool('demand_unit')
 
             # initialization of allocation area
-            self.init_allocation_area()
+            self.init_allocation_areas()
 
             # initialization of water demand related variables
             self.init_vars_WaterDemand()
@@ -352,7 +352,7 @@ class water_demand:
                 self.livestock.dynamic(wd_date)
 
             # calculate total water demand
-            totalDemand, frac_industry, frac_domestic, frac_livestock =  calculate_total_water_demand(self) 
+            totalDemand, frac_industry, frac_domestic, frac_livestock =  self.calculate_total_water_demand() 
 
 
             # ----------------------------------------------------
@@ -419,7 +419,7 @@ class water_demand:
                 # If sector- and source-specific abstractions are activated, then domestic, industrial, and
                 # livestock demands were attempted to be satisfied in the previous step. Otherwise, total demands
                 # not satisfied by previous sources is attempted.
-                self.allocate_reservoir_abstraction()
+                self.allocate_reservoir_abstraction(remainNeed2)
 
             # remaining demand is taken from groundwater if possible
             self.calculate_groundwater_abstraction(totalDemand)
@@ -435,7 +435,7 @@ class water_demand:
                 self.allocate_groundwater_abstraction()
 
             # calculate actual withdrawals and consumption
-            self.calculate_water_consumption()
+            self.calculate_water_consumption(frac_industry, frac_domestic, frac_livestock)
 
             # calculate return flows and evaporation losses
             self.calculate_return_flow()
@@ -1446,13 +1446,12 @@ class water_demand:
             self.var.pot_Res_Industry )
 
 
-    def allocate_reservoir_abstraction(self, remainNeed2, pot_Res_Irrigation):
+    def allocate_reservoir_abstraction(self, remainNeed2):
         """
         Allocates reservoir water for remaining demand  after surface water abstraction.
 
         Parameters:
             remainNeed2 (array): Remaining water demand per cell 
-            pot_Res_Irrigation (array): Potential reservoir abstraction for irrigation 
 
         """
         #  Aggregate remaining demand per command area
@@ -1525,19 +1524,19 @@ class water_demand:
         metRemainSegment = np.where( demand_Segment > 0,
             divideValues(act_bigLakeResAbst_alloc * self.var.Water_conveyance_efficiency, demand_Segment), 0 )
 
-        # Calculate leakage losses
-        self.var.leakageC_daily = resStorageTotal_allocC * ResAbstractFactorC * (
-            1 - np.compress(self.var.compress_LR, self.var.Water_conveyance_efficiency) )
-        self.var.leakage = globals.inZero.copy()
-        np.put(self.var.leakage, self.var.decompress_LR, self.var.leakageC_daily + self.var.leakage_wwtC_daily)
+        # Calculate leakage losses (only for waste water??)
+        #self.var.leakageC_daily = resStorageTotal_allocC * ResAbstractFactorC * (
+        #    1 - np.compress(self.var.compress_LR, self.var.Water_conveyance_efficiency) )
+        #self.var.leakage = globals.inZero.copy()
+        #np.put(self.var.leakage, self.var.decompress_LR, self.var.leakageC_daily + self.var.leakage_wwtC_daily)
 
-        divleak_canal = divideValues( self.var.leakageC_daily + self.var.leakage_wwtC_daily,
-            self.var.canalsAreaC )
-        self.var.leakageCanalsC_M = np.where(self.var.canalsAreaC > 0, divleak_canal, 0)
+        #divleak_canal = divideValues( self.var.leakageC_daily + self.var.leakage_wwtC_daily,
+        #    self.var.canalsAreaC )
+        #self.var.leakageCanalsC_M = np.where(self.var.canalsAreaC > 0, divleak_canal, 0)
 
-        self.var.leakageCanals_M = globals.inZero.copy()
-        np.put(self.var.leakageCanals_M, self.var.decompress_LR, self.var.leakageCanalsC_M)
-        self.var.leakageCanals_M = npareamaximum(self.var.leakageCanals_M, self.var.canals)
+        #self.var.leakageCanals_M = globals.inZero.copy()
+        #np.put(self.var.leakageCanals_M, self.var.decompress_LR, self.var.leakageCanalsC_M)
+        #self.var.leakageCanals_M = npareamaximum(self.var.leakageCanals_M, self.var.canals)
 
         # Update actual abstraction values
         self.var.act_bigLakeResAbst += remainNeed2 * metRemainSegment
@@ -1546,7 +1545,7 @@ class water_demand:
 
         # Allocate irrigation abstraction if sector-specific abstraction is enabled
         if self.var.sectorSourceAbstractionFractions:
-            self.var.Res_Irrigation = np.minimum(remainNeed2 * metRemainSegment, pot_Res_Irrigation)
+            self.var.Res_Irrigation = np.minimum(remainNeed2 * metRemainSegment, self.var.pot_Res_Irrigation)
 
 
     def calculate_groundwater_abstraction(self, totalDemand):
@@ -1677,16 +1676,16 @@ class water_demand:
             self.var.act_irrWithdrawal = act_irrWithdrawalSW + act_irrWithdrawalGW
 
             # Non-paddy
-            act.var.irrDemand[3]
+            act_irrnonpaddyGW = self.var.fracVegCover[3] * (1 - act_swAbstractionFraction) * \
+                                self.var.irrDemand[3]
             act_irrnonpaddyGW = np.minimum(self.var.nonFossilGroundwaterAbs, act_irrnonpaddyGW)
             act_irrnonpaddySW = self.var.fracVegCover[3] * act_swAbstractionFraction * self.var.irrDemand[3]
             self.var.act_irrNonpaddyWithdrawal = act_irrnonpaddySW + act_irrnonpaddyGW
 
             # Paddy
             act_irrpaddyGW = self.var.fracVegCover[2] * (1 - act_swAbstractionFraction) * self.var.irrDemand[2]
-            act.nonFossilGroundwaterAbs - act_irrnonpaddyGW,
-                act_irrpaddyGW
-            )
+            act_irrpaddyGW = np.minimum(
+                self.var.nonFossilGroundwaterAbs - act_irrnonpaddyGW, act_irrpaddyGW)
             act_irrpaddySW = self.var.fracVegCover[2] * act_swAbstractionFraction * self.var.irrDemand[2]
             self.var.act_irrPaddyWithdrawal = act_irrpaddySW + act_irrpaddyGW
 
@@ -1737,7 +1736,7 @@ class water_demand:
                 self.var.pot_Channel_Industry = np.minimum(unmetChannel_Industry, unmet_Industry)
                 self.var.pot_Channel_Irrigation = np.minimum(unmetChannel_Irrigation, unmet_Irrigation)
 
-                unmet_Channel = self.var.pot_Channel_Domestic + self.var.pot_Channel_Livestock + 
+                unmet_Channel = self.var.pot_Channel_Domestic + self.var.pot_Channel_Livestock + \
                     self.var.pot_Channel_Industry + self.var.pot_Channel_Irrigation
                 zoneDemand = npareatotal(unmet_Channel * self.var.cellArea, self.var.allocation_zone)
             else:
@@ -1829,87 +1828,86 @@ class water_demand:
         self.var.act_irrNonpaddyDemand = self.var.act_irrNonpaddyWithdrawal.copy()
         self.var.act_irrPaddyDemand = self.var.act_irrPaddyWithdrawal.copy()
 
-  
 
-def calculate_water_consumption(self, frac_domestic, frac_industry, frac_livestock):
-    """
-    Calculates actual water consumption and withdrawals for irrigation and non-irrigation sectors,
-    based on actual withdrawals, efficiencies, and sectoral abstraction settings.
+    def calculate_water_consumption(self, frac_domestic, frac_industry, frac_livestock):
+        """
+        Calculates actual water consumption and withdrawals for irrigation and non-irrigation sectors,
+        based on actual withdrawals, efficiencies, and sectoral abstraction settings.
 
-    Parameters:
-        frac_domestic (float): Fraction of non-irrigation demand attributed to domestic use.
-        frac_industry (float): Fraction of non-irrigation demand attributed to industry.
-        frac_livestock (float): Fraction of non-irrigation demand attributed to livestock.
-    """
-    # Irrigation consumption
-    # paddy
-    self.var.act_irrConsumption[2] = divideValues(
-        self.var.act_irrPaddyWithdrawal, self.var.fracVegCover[2] ) * self.var.efficiencyPaddy
-    # non-paddy
-    self.var.act_irrConsumption[3] = divideValues(
-        self.var.act_irrNonpaddyWithdrawal, self.var.fracVegCover[3] ) * self.var.efficiencyNonpaddy
+        Parameters:
+            frac_domestic (float): Fraction of non-irrigation demand attributed to domestic use.
+            frac_industry (float): Fraction of non-irrigation demand attributed to industry.
+            frac_livestock (float): Fraction of non-irrigation demand attributed to livestock.
+        """
+        # Irrigation consumption
+        # paddy
+        self.var.act_irrConsumption[2] = divideValues(
+            self.var.act_irrPaddyWithdrawal, self.var.fracVegCover[2] ) * self.var.efficiencyPaddy
+        # non-paddy
+        self.var.act_irrConsumption[3] = divideValues(
+            self.var.act_irrNonpaddyWithdrawal, self.var.fracVegCover[3] ) * self.var.efficiencyNonpaddy
 
-    if self.var.sectorSourceAbstractionFractions:
-        # Non-irrigation withdrawals and consumption by sector 
-        self.var.act_domWithdrawal = self.var.Channel_Domestic + self.var.Lift_Domestic + \
-                                        self.var.Desal_Domestic + self.var.Lake_Domestic + \
-                                        self.var.Res_Domestic + self.var.GW_Domestic
-        self.var.act_livWithdrawal = self.var.Channel_Livestock + self.var.Lift_Livestock + \
-                                        self.var.Desal_Livestock + self.var.Lake_Livestock + \
-                                        self.var.Res_Livestock + self.var.GW_Livestock
-        self.var.act_indWithdrawal = self.var.Channel_Industry + self.var.Lift_Industry + \
-                                        self.var.Desal_Industry + self.var.Lake_Industry + \
-                                        self.var.Res_Industry + self.var.GW_Industry
+        if self.var.sectorSourceAbstractionFractions:
+            # Non-irrigation withdrawals and consumption by sector 
+            self.var.act_domWithdrawal = self.var.Channel_Domestic + self.var.Lift_Domestic + \
+                                            self.var.Desal_Domestic + self.var.Lake_Domestic + \
+                                            self.var.Res_Domestic + self.var.GW_Domestic
+            self.var.act_livWithdrawal = self.var.Channel_Livestock + self.var.Lift_Livestock + \
+                                            self.var.Desal_Livestock + self.var.Lake_Livestock + \
+                                            self.var.Res_Livestock + self.var.GW_Livestock
+            self.var.act_indWithdrawal = self.var.Channel_Industry + self.var.Lift_Industry + \
+                                            self.var.Desal_Industry + self.var.Lake_Industry + \
+                                            self.var.Res_Industry + self.var.GW_Industry
 
-        self.var.act_indConsumption = self.var.ind_efficiency * self.var.act_indWithdrawal
-        self.var.act_domConsumption = self.var.dom_efficiency * self.var.act_domWithdrawal
-        self.var.act_livConsumption = self.var.liv_efficiency * self.var.act_livWithdrawal
-        self.var.act_nonIrrConsumption = self.var.act_domConsumption + self.var.act_indConsumption + \
-                                            self.var.act_livConsumption
+            self.var.act_indConsumption = self.var.ind_efficiency * self.var.act_indWithdrawal
+            self.var.act_domConsumption = self.var.dom_efficiency * self.var.act_domWithdrawal
+            self.var.act_livConsumption = self.var.liv_efficiency * self.var.act_livWithdrawal
+            self.var.act_nonIrrConsumption = self.var.act_domConsumption + self.var.act_indConsumption + \
+                                                self.var.act_livConsumption
 
-    elif self.var.includeIndusDomesDemand:
-        # Split non-irrigation withdrawal by fractions
-        self.var.act_indWithdrawal = frac_industry * self.var.act_nonIrrWithdrawal
-        self.var.act_domWithdrawal = frac_domestic * self.var.act_nonIrrWithdrawal
-        self.var.act_livWithdrawal = frac_livestock * self.var.act_nonIrrWithdrawal
+        elif self.var.includeIndusDomesDemand:
+            # Split non-irrigation withdrawal by fractions
+            self.var.act_indWithdrawal = frac_industry * self.var.act_nonIrrWithdrawal
+            self.var.act_domWithdrawal = frac_domestic * self.var.act_nonIrrWithdrawal
+            self.var.act_livWithdrawal = frac_livestock * self.var.act_nonIrrWithdrawal
 
-        # Consumption based on efficiency
-        self.var.act_indConsumption = self.var.ind_efficiency * self.var.act_indWithdrawal
-        self.var.act_domConsumption = self.var.dom_efficiency * self.var.act_domWithdrawal
-        self.var.act_livConsumption = self.var.liv_efficiency * self.var.act_livWithdrawal
+            # Consumption based on efficiency
+            self.var.act_indConsumption = self.var.ind_efficiency * self.var.act_indWithdrawal
+            self.var.act_domConsumption = self.var.dom_efficiency * self.var.act_domWithdrawal
+            self.var.act_livConsumption = self.var.liv_efficiency * self.var.act_livWithdrawal
 
-        self.var.act_nonIrrConsumption = (
-            self.var.act_domConsumption + self.var.act_indConsumption + self.var.act_livConsumptionConsumption = globals.inZero.copy()
-            
-    else:  # only irrigation is considered
-        self.var.act_nonIrrConsumption = globals.inZero.copy()
+            self.var.act_nonIrrConsumption = self.var.act_domConsumption + self.var.act_indConsumption + \
+                                                    self.var.act_livConsumption    
+                
+        else:  # only irrigation is considered
+            self.var.act_nonIrrConsumption = globals.inZero.copy()
 
-    # --- Total irrigation consumption ---
-    self.var.act_totalIrrConsumption = ( self.var.fracVegCover[2] * self.var.act_irrConsumption[2] +
-        self.var.fracVegCover[3] * self.var.act_irrConsumption[3] )
-    self.var.act_paddyConsumption = self.var.fracVegCover[2] * self.var.act_irrConsumption[2]
-    self.var.act_nonpaddyConsumption = self.var.fracVegCover[3] * self.var.act_irrConsumption[3]
+        # --- Total irrigation consumption ---
+        self.var.act_totalIrrConsumption = ( self.var.fracVegCover[2] * self.var.act_irrConsumption[2] +
+            self.var.fracVegCover[3] * self.var.act_irrConsumption[3] )
+        self.var.act_paddyConsumption = self.var.fracVegCover[2] * self.var.act_irrConsumption[2]
+        self.var.act_nonpaddyConsumption = self.var.fracVegCover[3] * self.var.act_irrConsumption[3]
 
-    # --- Total water demand, withdrawal, and consumption ---
-    if self.var.includeIndusDomesDemand:
-        self.var.totalWaterDemand = (
-            self.var.fracVegCover[2] * self.var.irrDemand[2] +
-            self.var.fracVegCover[3] * self.var.irrDemand[3] +
-            self.var.nonIrrDemand
-        )
-        self.var.act_totalWaterWithdrawal = (
-            self.var.act_nonIrrWithdrawal + self.var.act_irrWithdrawal
-        )
-        self.var.act_totalWaterConsumption = (
-            self.var.act_nonIrrConsumption + self.var.act_totalIrrConsumption
-        )
-    else:
-        self.var.totalWaterDemand = (
-            self.var.fracVegCover[2] * self.var.irrDemand[2] +
-            self.var.fracVegCover[3] * self.var.irrDemand[3]
-        )
-        self.var.act_totalWaterWithdrawal = np.copy(self.var.act_irrWithdrawal)
-        self.var.act_totalWaterConsumption = np.copy(self.var.act_totalIrrConsumption)
+        # --- Total water demand, withdrawal, and consumption ---
+        if self.var.includeIndusDomesDemand:
+            self.var.totalWaterDemand = (
+                self.var.fracVegCover[2] * self.var.irrDemand[2] +
+                self.var.fracVegCover[3] * self.var.irrDemand[3] +
+                self.var.nonIrrDemand
+            )
+            self.var.act_totalWaterWithdrawal = (
+                self.var.act_nonIrrWithdrawal + self.var.act_irrWithdrawal
+            )
+            self.var.act_totalWaterConsumption = (
+                self.var.act_nonIrrConsumption + self.var.act_totalIrrConsumption
+            )
+        else:
+            self.var.totalWaterDemand = (
+                self.var.fracVegCover[2] * self.var.irrDemand[2] +
+                self.var.fracVegCover[3] * self.var.irrDemand[3]
+            )
+            self.var.act_totalWaterWithdrawal = np.copy(self.var.act_irrWithdrawal)
+            self.var.act_totalWaterConsumption = np.copy(self.var.act_totalIrrConsumption)
 
 
     def calculate_return_flow(self):        
