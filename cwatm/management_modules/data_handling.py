@@ -203,7 +203,7 @@ def loadsetclone(self,name):
     # if there is no ldd at a cell, this cell should be excluded from modelling
 
     maskldd = loadmap('Ldd', compress = False)
-    maskarea = np.bool8(mapnp)
+    maskarea = np.bool(mapnp)
     mask = np.logical_not(np.logical_and(maskldd,maskarea))
 
 #    mask=np.isnan(mapnp)
@@ -269,7 +269,7 @@ def maskfrompoint(mask2D, xleft, yup):
     maskmapAttr['col'] = mask2D.shape[1]
     maskmapAttr['row'] = mask2D.shape[0]
 
-    mask = np.invert(np.bool8(mask2D))
+    mask = np.invert(np.bool(mask2D))
     mapC = np.ma.compressed(np.ma.masked_array(mask, mask))
 
     # Definition of compressed array and info how to blow it up again
@@ -1300,20 +1300,6 @@ def writenetcdf(netfile,prename,addname,varunits,inputmap, timeStamp, posCnt, fl
     col = np.abs(cutmap[1] - cutmap[0])
 
 
-    # check if it is a modflow grid which has another resolution
-    modflow = False
-    if "modflow" in prename.lower():
-            modflow = True
-            row = domain['nrow']
-            col = domain['ncol']
-            metadataNCDF['modflow_x'] = {}
-            metadataNCDF['modflow_x']['standard_name'] = 'X'
-            metadataNCDF['modflow_x']['units'] = 'm'
-            metadataNCDF['modflow_y'] = {}
-            metadataNCDF['modflow_y']['standard_name'] = 'Y'
-            metadataNCDF['modflow_y']['units'] = 'm'
-
-
     # create real varname with variable name + time depending name e.g. discharge + monthavg
     varname = prename + addname
 
@@ -1347,37 +1333,26 @@ def writenetcdf(netfile,prename,addname,varunits,inputmap, timeStamp, posCnt, fl
 
 
         # Dimension
-        if modflow:
+        if 'x' in list(metadataNCDF.keys()):
             lon = nf1.createDimension('x', col)  # x 1000
             longitude = nf1.createVariable('x', 'f8', ('x',))
-            for i in metadataNCDF['modflow_x']:
-                exec('%s="%s"' % ("longitude." + i, metadataNCDF['modflow_x'][i]))
+            for i in metadataNCDF['x']:
+                exec('%s="%s"' % ("longitude." + i, metadataNCDF['x'][i]))
+        if 'lon' in list(metadataNCDF.keys()):
+            lon = nf1.createDimension('lon', col)
+            longitude = nf1.createVariable('lon', 'f8', ('lon',))
+            for i in metadataNCDF['lon']:
+                exec('%s="%s"' % ("longitude." + i, metadataNCDF['lon'][i]))
+        if 'y' in list(metadataNCDF.keys()):
             lat = nf1.createDimension('y', row)  # x 950
             latitude = nf1.createVariable('y', 'f8', 'y')
-            for i in metadataNCDF['modflow_y']:
-                exec('%s="%s"' % ("latitude." + i, metadataNCDF['modflow_y'][i]))
-
-        else:
-            if 'x' in list(metadataNCDF.keys()):
-                lon = nf1.createDimension('x', col)  # x 1000
-                longitude = nf1.createVariable('x', 'f8', ('x',))
-                for i in metadataNCDF['x']:
-                    exec('%s="%s"' % ("longitude." + i, metadataNCDF['x'][i]))
-            if 'lon' in list(metadataNCDF.keys()):
-                lon = nf1.createDimension('lon', col)
-                longitude = nf1.createVariable('lon', 'f8', ('lon',))
-                for i in metadataNCDF['lon']:
-                    exec('%s="%s"' % ("longitude." + i, metadataNCDF['lon'][i]))
-            if 'y' in list(metadataNCDF.keys()):
-                lat = nf1.createDimension('y', row)  # x 950
-                latitude = nf1.createVariable('y', 'f8', 'y')
-                for i in metadataNCDF['y']:
-                    exec('%s="%s"' % ("latitude." + i, metadataNCDF['y'][i]))
-            if 'lat' in list(metadataNCDF.keys()):
-                lat = nf1.createDimension('lat', row)  # x 950
-                latitude = nf1.createVariable('lat', 'f8', 'lat')
-                for i in metadataNCDF['lat']:
-                    exec('%s="%s"' % ("latitude." + i, metadataNCDF['lat'][i]))
+            for i in metadataNCDF['y']:
+                exec('%s="%s"' % ("latitude." + i, metadataNCDF['y'][i]))
+        if 'lat' in list(metadataNCDF.keys()):
+            lat = nf1.createDimension('lat', row)  # x 950
+            latitude = nf1.createVariable('lat', 'f8', 'lat')
+            for i in metadataNCDF['lat']:
+                exec('%s="%s"' % ("latitude." + i, metadataNCDF['lat'][i]))
 
         # projection
         if 'laea' in list(metadataNCDF.keys()):
@@ -1392,24 +1367,16 @@ def writenetcdf(netfile,prename,addname,varunits,inputmap, timeStamp, posCnt, fl
 
 
         # Fill variables
-        if modflow:
-            lats = np.arange(domain['north'], domain['south'] - 1, domain['rowsize'] * -1)
-            lons =  np.arange(domain['west'], domain['east']+1, domain['colsize'])
-            #lons =  np.linspace(domain['north'] , domain['south'], col, endpoint=False)
-            latitude[:] = lats
-            longitude[:] = lons
+        cell = maskmapAttr['cell']
+        xl = maskmapAttr['x']
+        xr = xl + col * cell
+        yu = maskmapAttr['y']
+        yd = yu - row * cell
+        lats = np.linspace(yu, yd, row, endpoint=False)
+        lons = np.linspace(xl, xr, col, endpoint=False)
 
-        else:
-            cell = maskmapAttr['cell']
-            xl = maskmapAttr['x']
-            xr = xl + col * cell
-            yu = maskmapAttr['y']
-            yd = yu - row * cell
-            lats = np.linspace(yu, yd, row, endpoint=False)
-            lons = np.linspace(xl, xr, col, endpoint=False)
-
-            latitude[:] = lats - cell / 2.0
-            longitude[:] = lons + cell /2.0
+        latitude[:] = lats - cell / 2.0
+        longitude[:] = lons + cell /2.0
 
         if flagTime:
 
@@ -1428,25 +1395,19 @@ def writenetcdf(netfile,prename,addname,varunits,inputmap, timeStamp, posCnt, fl
             #time.calendar = 'standard'
             time.calendar = dateVar['calendar']
 
-            if modflow:
+
+            if 'x' in list(metadataNCDF.keys()):
                 value = nf1.createVariable(varname, 'f4', ('time', 'y', 'x'), zlib=True, fill_value=1e20,
-                                           chunksizes=(1, row, col))
-            else:
-                if 'x' in list(metadataNCDF.keys()):
-                    value = nf1.createVariable(varname, 'f4', ('time', 'y', 'x'), zlib=True, fill_value=1e20,
-                                               chunksizes=(1, row, col))
-                if 'lon' in list(metadataNCDF.keys()):
-                    #value = nf1.createVariable(varname, 'f4', ('time', 'lat', 'lon'), zlib=True, fill_value=1e20)
-                    value = nf1.createVariable(varname, 'f4', ('time', 'lat', 'lon'), zlib=True, fill_value=1e20,chunksizes=(1,row,col))
+                                            chunksizes=(1, row, col))
+            if 'lon' in list(metadataNCDF.keys()):
+                #value = nf1.createVariable(varname, 'f4', ('time', 'lat', 'lon'), zlib=True, fill_value=1e20)
+                value = nf1.createVariable(varname, 'f4', ('time', 'lat', 'lon'), zlib=True, fill_value=1e20,chunksizes=(1,row,col))
         else:
-          if modflow:
-              value = nf1.createVariable(varname, 'f4', ('y', 'x'), zlib=True, fill_value=1e20)
-          else:
-              if 'x' in list(metadataNCDF.keys()):
-                  value = nf1.createVariable(varname, 'f4', ('y', 'x'), zlib=True,fill_value=1e20)
-              if 'lon' in list(metadataNCDF.keys()):
-                  # for world lat/lon coordinates
-                  value = nf1.createVariable(varname, 'f4', ('lat', 'lon'), zlib=True, fill_value=1e20)
+            if 'x' in list(metadataNCDF.keys()):
+                value = nf1.createVariable(varname, 'f4', ('y', 'x'), zlib=True,fill_value=1e20)
+            if 'lon' in list(metadataNCDF.keys()):
+                # for world lat/lon coordinates
+                value = nf1.createVariable(varname, 'f4', ('lat', 'lon'), zlib=True, fill_value=1e20)
 
         value.standard_name = getmeta("standard_name",prename,varname)
         p1 = getmeta("long_name",prename,prename)
@@ -1482,18 +1443,14 @@ def writenetcdf(netfile,prename,addname,varunits,inputmap, timeStamp, posCnt, fl
         print(CWATMWarning(msg))
         return False
 
-    if modflow:
-        mapnp = inputmap
-    else:
-        mapnp[~maskinfo['maskflat']] = inputmap[:]
-        #mapnp = mapnp.reshape(maskinfo['shape']).data
-        mapnp = mapnp.reshape(maskinfo['shape'])
+    mapnp[~maskinfo['maskflat']] = inputmap[:]
+    mapnp = mapnp.reshape(maskinfo['shape'])
 
-        if coverresult[0]:
-            mapnp = mapnp.reshape(maskinfo['shape']).data
-            mapnp = np.where(coverresult[1], mapnp, np.nan)
-        else:
-            mapnp = mapnp.reshape(maskinfo['shape'])
+    if coverresult[0]:
+        mapnp = mapnp.reshape(maskinfo['shape']).data
+        mapnp = np.where(coverresult[1], mapnp, np.nan)
+    else:
+        mapnp = mapnp.reshape(maskinfo['shape'])
 
     if flagTime:
         nf1.variables[varname][posCnt -1, :, :] = mapnp

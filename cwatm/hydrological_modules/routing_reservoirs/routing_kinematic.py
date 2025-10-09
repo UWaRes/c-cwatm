@@ -26,7 +26,6 @@ class routing_kinematic(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
     load_initial                           Settings initLoad holds initial conditions for variables                input
     inflowM3                               inflow to basin                                                         m3   
     Crops                                  Internal: List of specific crops and Kc/Ky parameters                   --   
@@ -94,22 +93,16 @@ class routing_kinematic(object):
     humanUse                                                                                                       --   
     natureUse                                                                                                      --   
     ETRefAverage_segments                                                                                          --   
-    precipEffectiveAverage_segments                                                                                --   
-    head_segments                          Simulated water level, averaged over adminSegments [masl]               --   
-    gwdepth_adjusted_segments              Adjusted depth to groundwater table, averaged over adminSegments        m    
-    gwdepth_segments                       Groundwater depth, averaged over adminSegments                          m    
-    adminSegments_area                     Spatial area of domestic agents                                         m2   
+    precipEffectiveAverage_segments                                                                                --     
     runoff                                                                                                         --   
     openWaterEvap                          Simulated evaporation from open areas                                   m    
     infiltration                           Water actually infiltrating the soil                                    m    
     actTransTotal_paddy                    Transpiration from paddy land cover                                     m    
     actTransTotal_nonpaddy                 Transpiration from non-paddy land cover                                 m    
     actTransTotal_crops_nonIrr             Transpiration associated with specific non-irr crops                    m    
-    head                                   Simulated ModFlow water level [masl]                                    m    
     gwdepth_adjusted                       Adjusted depth to groundwater table                                     m    
     gwdepth                                Depth to groundwater table                                              m    
     fracVegCover                           Fraction of specific land covers (0=forest, 1=grasslands, etc.)         %    
-    adminSegments                          Domestic agents                                                         Int  
     lakeResStorage                                                                                                 --   
     act_SurfaceWaterAbstract               Surface water abstractions                                              m    
     addtoevapotrans                        Irrigation application loss to evaporation                              m    
@@ -308,12 +301,6 @@ class routing_kinematic(object):
         #self.var.channelAlphaPcr = decompress(self.var.channelAlpha)
         #self.var.chanLengthPcr = decompress(self.var.chanLength)
 
-
-        if checkOption('calcWaterBalance'):
-            self.var.catchmentAll = (loadmap('MaskMap',local = True) * 0.).astype(np.int)
-            #self.var.catchmentNo = int(loadmap('CatchmentNo'))
-            #self.var.sumbalance = 0
-
         self.var.Xcel = []
 
 
@@ -337,11 +324,6 @@ class routing_kinematic(object):
         if not(checkOption('includeRouting')):
             return
 
-        if checkOption('calcWaterBalance'):
-            self.var.prechannelStorage = self.var.channelStorage.copy()
-            if checkOption('includeWaterBodies'):
-                self.var.prelakeResStorage = self.var.lakeResStorage.copy()
-
 
         Qnew = globals.inZero.copy()
 
@@ -363,7 +345,7 @@ class routing_kinematic(object):
 
 
         # riverbed infiltration (m3):
-        # - current implementation based on Inge's principle (later, will be based on groundater head (MODFLOW) and can be negative)
+        # - current implementation based on Inge's principle 
         # - happening only if 0.0 < baseflow < nonFossilGroundwaterAbs
         # - infiltration rate will be based on aquifer saturated conductivity
         # - limited to fracWat
@@ -402,10 +384,6 @@ class routing_kinematic(object):
             self.var.sumLakeEvapWaterBodyC = self.var.evapWaterBodyC * 0.
 
         EvapoChannelM3Dt = self.var.EvapoChannel / self.var.noRoutingSteps
-        if self.var.modflow:
-            # removing water infiltrating from river to groundwater
-            riverbedExchangeDt = self.var.riverbedExchangeM3 / self.var.noRoutingSteps
-        #riverbedExchangeDt = self.var.riverbedExchange / self.var.noRoutingSteps
 
         if checkOption('inflow'):
             self.var.QDelta = (self.var.inflowM3 - self.var.QInM3Old) / self.var.noRoutingSteps
@@ -454,9 +432,6 @@ class routing_kinematic(object):
             sideflowChanM3 = runoffM3.copy()
             # minus evaporation from channels
             sideflowChanM3 -= EvapoChannelM3Dt
-            if self.var.modflow:
-                # minus riverbed exchange
-                sideflowChanM3 -= riverbedExchangeDt
 
             if checkOption('includeWaterDemand'):
                 sideflowChanM3 -= WDAddM3Dt

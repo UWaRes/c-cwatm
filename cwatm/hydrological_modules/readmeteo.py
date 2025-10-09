@@ -43,10 +43,6 @@ class readmeteo(object):
     meteodown                              if meteo maps should be downscaled                                      --   
     InterpolationMethod                                                                                            --   
     buffer                                                                                                         --   
-    preMaps                                choose between steady state precipitation maps for steady state modflo  --   
-    tempMaps                               choose between steady state temperature maps for steady state modflow   --   
-    evaTMaps                               choose between steady state ETP water maps for steady state modflow or  --   
-    eva0Maps                               choose between steady state ETP reference maps for steady state modflo  --   
     glaciermeltMaps                                                                                                --   
     glacierrainMaps                                                                                                --   
     wc2_tavg                               High resolution WorldClim map for average temperature                   K    

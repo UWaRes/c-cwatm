@@ -58,11 +58,6 @@ from cwatm.management_modules.dynamicModel import ModelFrame
 from cwatm.cwatm_model import CWATModel
 from cwatm.management_modules.globals import *
 
-if "modflow_coupling" in option:
-    if checkOption('modflow_coupling'):
-        import flopy
-        import xmipy
-
 #import xlrd
 #import openpyxl
 
