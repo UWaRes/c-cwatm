@@ -16,7 +16,6 @@ from cwatm.hydrological_modules.inflow import inflow
 from cwatm.hydrological_modules.landcoverType import landcoverType
 from cwatm.hydrological_modules.groundwater import groundwater
 from cwatm.hydrological_modules.water_demand.water_demand import water_demand
-from cwatm.hydrological_modules.water_demand.wastewater import waterdemand_wastewater as wastewater
 from cwatm.hydrological_modules.lakes_res_small import lakes_res_small
 from cwatm.hydrological_modules.environflow import environflow
 from cwatm.hydrological_modules.routing_reservoirs.routing_kinematic import routing_kinematic
@@ -96,7 +95,6 @@ class CWATModel_ini(DynamicModel):
         self.landcoverType_module = landcoverType(self)
         self.groundwater_module = groundwater(self)
         self.waterdemand_module = water_demand(self)
-        self.wastewater_module = wastewater(self)
         self.lakes_res_small_module = lakes_res_small(self)
         self.routing_kinematic_module = routing_kinematic(self)
         self.lakes_reservoirs_module = lakes_reservoirs(self)
@@ -111,9 +109,6 @@ class CWATModel_ini(DynamicModel):
         # ----------------------------------------
         # reading of the metainformation of variables to put into output netcdfs
         metaNetCDF()
-
-        # no ModFlow
-        self.var.modflow = False
 
         ## MakMap: the maskmap is flexible e.g. col,row,x1,y1  or x1,x2,y1,y2
         # set the maskmap

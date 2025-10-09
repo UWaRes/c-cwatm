@@ -39,8 +39,7 @@ class landcoverType(object):
 
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
-    =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
+    =====================================  ======================================================================  ===== 
     snowEvap                               total evaporation from snow for a snow layers                           m    
     load_initial                           Settings initLoad holds initial conditions for variables                input
     topwater                               quantity of water above the soil (flooding)                             m    
@@ -169,13 +168,9 @@ class landcoverType(object):
     capriseindex                                                                                                   --   
     soildepth12                            Total thickness of layer 2 and 3                                        m    
     leakageriver_factor                                                                                            --   
-    leakagelake_factor                                                                                             --   
-    modflow_timestep                       Chosen ModFlow model timestep (1day, 7days, 30days, etc.)               --   
-    wwtUrbanLeakage                                                                                                --   
-    wwtColArea                                                                                                     --   
+    leakagelake_factor                                                                                             --    
     urbanleak                                                                                                      --   
     fracVegCover                           Fraction of specific land covers (0=forest, 1=grasslands, etc.)         %    
-    includeWastewater                                                                                              --   
     lakeVolumeM3C                          compressed map of lake volume                                           m3   
     lakeStorageC                                                                                                   --   
     reservoirStorageM3C                                                                                            --   

@@ -22,8 +22,7 @@ class sealed_water(object):
 
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
-    =====================================  ======================================================================  =====
-    modflow                                Flag: True if modflow_coupling = True in settings file                  --   
+    =====================================  ======================================================================  ===== 
     availWaterInfiltration                 quantity of water reaching the soil after interception, more snowmelt   m    
     EWRef                                  potential evaporation rate from water surface                           m    
     actualET                               simulated evapotranspiration from soil, flooded area and vegetation     m    
@@ -31,7 +30,6 @@ class sealed_water(object):
     openWaterEvap                          Simulated evaporation from open areas                                   m    
     actTransTotal                          Total actual transpiration from the three soil layers                   m    
     actBareSoilEvap                        Simulated evaporation from the first soil layer                         m    
-    capillar                               Flow from groundwater to the third CWATM soil layer. Used with MODFLOW  m    
     =====================================  ======================================================================  =====
 
     **Functions**

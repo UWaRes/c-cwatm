@@ -30,8 +30,9 @@ class readmeteo(object):
     only_radiation                                                                                                 --  
     EWRef                                  potential evaporation rate from water surface                           m    
     meteomapsscale                         if meteo maps have the same extend as the other spatial static maps ->  --   
-    meteodown                              if meteo maps should be downscaled                                      --     
-    buffer                                                                                                         --     
+    meteodown                              if meteo maps should be downscaled                                      --   
+    InterpolationMethod                                                                                            --   
+    buffer                                                                                                         --   
     glaciermeltMaps                                                                                                --   
     glacierrainMaps                                                                                                --       
     meteo                                                                                                          --       

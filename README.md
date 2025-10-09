@@ -5,6 +5,10 @@
 Climate-CWatM (C-CWatM) is a flexible modelling tool that can be coupled to (regional) climate modelling systems. It is based on the socio-hydrological model [CWatM](https://cwatm.iiasa.ac.at) and enables the simulation of various hydrological quantities, such as discharge, sectoral water use, groundwater levels, and water reservoirs, as part of climate model simulations. C-CWatM is designed as a standalone Python model that can be easily integrated into various climate modelling systems as it operates on standard climate and land surface variables.
 C-CWatM is developed and maintained by the [UWaRes](https://ms.hereon.de/uwares/) team at the Helmholtz-Zentrum [Hereon](https://www.hereon.de/).
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3156de37-c8a9-4bc2-bdbd-19946b67b0dc" width="220">
+</p>
+
 > [!WARNING]
 > C-CWatM is still under development and not fully functional in its current form.
 
@@ -19,7 +23,7 @@ C-CWatM is developed and maintained by the [UWaRes](https://ms.hereon.de/uwares/
 
 ### TODO
 
-- Include OASIS coupling
+- Include OASIS coupling (*develop_oasis* branch)
 - many other things
 
 ## Input Data

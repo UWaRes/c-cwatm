@@ -1,4 +1,7 @@
-cwatm/management_modules/__pycache__/*
+cwatm/__pycache__/*
+cwatm/*/__pycache__/*
+cwatm/*/*/__pycache__/*
+cwatm/*/*/*/__pycache__/*
 ccwatm.e
 ccwatm.o
 debug.*
@@ -6,3 +9,9 @@ nout.*
 *.out_1*
 *.nc
 fort*
+.ipynb_checkpoints/*
+*/.ipynb_checkpoints/*
+*/*/.ipynb_checkpoints/*
+*/*/*/.ipynb_checkpoints/*
+*/*/*/*/.ipynb_checkpoints/*
+

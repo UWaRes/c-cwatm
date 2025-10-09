@@ -29,7 +29,6 @@ from xml.dom import minidom
 
 base_folders = ['hydrological_modules', 
                 'hydrological_modules/routing_reservoirs',
-                'hydrological_modules/groundwater_modflow', 
                 'hydrological_modules/water_demand', 
                 'management_modules',
                 '.'
