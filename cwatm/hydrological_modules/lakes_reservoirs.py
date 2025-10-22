@@ -107,12 +107,7 @@ class lakes_reservoirs(object):
     lakeAreaC                              compressed map of the area of each lake/reservoir                       m2   
     lakeDis0                               compressed map average discharge at the outlet of a lake/reservoir      m3/s 
     lakeDis0C                              average discharge at the outlet of a lake/reservoir                     m3/s 
-    lakeAC                                 compressed map of parameter of channel width, gravity and weir coeffic  --   
-    reservoir_transfers_net_M3             net reservoir transfers, after exports, transfers, and imports          m3   
-    reservoir_transfers_in_M3              water received into reservoirs                                          m3   
-    reservoir_transfers_out_M3             water given from reservoirs                                             m3   
-    reservoir_transfers_from_outside_M3    water received into reservoirs from Outside                             m3   
-    reservoir_transfers_to_outside_M3      water given from reservoirs to the Outside                              m3   
+    lakeAC                                 compressed map of parameter of channel width, gravity and weir coeffic  --    
     resVolumeOnlyReservoirs                                                                                        --   
     resVolumeOnlyReservoirsC                                                                                       --   
     resVolume                                                                                                      --   
@@ -176,12 +171,7 @@ class lakes_reservoirs(object):
     discharge                              Channel discharge                                                       m3/s 
     inflowDt                                                                                                       --   
     prelakeResStorage                                                                                              --   
-    runoff                                                                                                         --   
-    reservoir_transfers_net_M3C                                                                                    --   
-    reservoir_transfers_in_M3C                                                                                     --   
-    reservoir_transfers_out_M3C                                                                                    --   
-    reservoir_transfers_from_outside_M3C                                                                           --   
-    reservoir_transfers_to_outside_M3C                                                                             --   
+    runoff                                                                                                         --     
     lakeVolumeM3C                          compressed map of lake volume                                           m3   
     lakeStorageC                                                                                                   --   
     reservoirStorageM3C                                                                                            --   
@@ -195,34 +185,6 @@ class lakes_reservoirs(object):
     def __init__(self, model):
         self.var = model.var
         self.model = model
-
-    def reservoir_releases(self, xl_settings_file_path):
-        pd = importlib.import_module("pandas", package=None)
-        df = pd.read_excel(xl_settings_file_path, sheet_name='Reservoirs_downstream')
-        waterBodyID_C_tolist = self.var.waterBodyID_C.tolist()
-
-        reservoir_release = [[-1 for i in self.var.waterBodyID_C] for i in range(366)]
-        for res in list(df)[2:]:
-            if res in waterBodyID_C_tolist:
-                res_index = waterBodyID_C_tolist.index(int(float(res)))
-
-                for day in range(366):
-                    reservoir_release[day][res_index] = df[res][day]
-
-        reservoir_supply = [[-1 for i in self.var.waterBodyID_C] for i in range(366)]
-        #reservoir_release.copy()
-        if 'Reservoirs_supply' in pd.read_excel(xl_settings_file_path, None).keys():
-            df2 = pd.read_excel(xl_settings_file_path, sheet_name='Reservoirs_supply')
-            for res in list(df2)[2:]:
-                if res in waterBodyID_C_tolist:
-                    res_index = waterBodyID_C_tolist.index(int(float(res)))
-
-                    for day in range(366):
-                        reservoir_supply[day][res_index] = df2[res][day]
-        else:
-            reservoir_supply = reservoir_release.copy()
-        
-        return reservoir_release, reservoir_supply
 
 
     def initWaterbodies(self):
@@ -367,21 +329,6 @@ class lakes_reservoirs(object):
             # ================================
             # Reservoirs
 
-            self.var.reservoir_transfers_net_M3C = np.compress(self.var.compress_LR, globals.inZero.copy())
-            self.var.reservoir_transfers_net_M3 = globals.inZero.copy()
-
-            self.var.reservoir_transfers_in_M3C = np.compress(self.var.compress_LR, globals.inZero.copy())
-            self.var.reservoir_transfers_in_M3 = globals.inZero.copy()
-
-            self.var.reservoir_transfers_out_M3C = np.compress(self.var.compress_LR, globals.inZero.copy())
-            self.var.reservoir_transfers_out_M3 = globals.inZero.copy()
-
-            self.var.reservoir_transfers_from_outside_M3C = np.compress(self.var.compress_LR, globals.inZero.copy())
-            self.var.reservoir_transfers_from_outside_M3 = globals.inZero.copy()
-
-            self.var.reservoir_transfers_to_outside_M3C = np.compress(self.var.compress_LR, globals.inZero.copy())
-            self.var.reservoir_transfers_to_outside_M3 = globals.inZero.copy()
-
             self.var.resVolumeOnlyReservoirs = globals.inZero.copy()
             self.var.resVolumeOnlyReservoirsC = np.where(self.var.resVolumeC > 0, self.var.resVolumeC, 0)
             np.put(self.var.resVolumeOnlyReservoirs, self.var.decompress_LR, self.var.resVolumeOnlyReservoirsC)
@@ -412,19 +359,6 @@ class lakes_reservoirs(object):
             self.var.EvapWaterBodyM = globals.inZero.copy()
             self.var.lakeResInflowM = globals.inZero.copy()
             self.var.lakeResOutflowM = globals.inZero.copy()
-
-            self.var.reservoir_releases_excel_option = False
-            if 'reservoir_releases_in_Excel_settings' in option:
-                if checkOption('reservoir_releases_in_Excel_settings'):
-                    if 'Excel_settings_file' in binding:
-                        self.var.reservoir_releases_excel_option = True
-                        xl_settings_file_path = cbinding('Excel_settings_file')
-                        self.var.reservoir_releases, self.var.reservoir_supply = \
-                            self.reservoir_releases(xl_settings_file_path)
-
-                        self.var.reservoir_releases = np.array(self.var.reservoir_releases)
-                        self.var.reservoir_supply = np.array(self.var.reservoir_supply)
-
 
     def initial_lakes(self):
         """
@@ -594,9 +528,6 @@ class lakes_reservoirs(object):
 
                 self.var.lakeResStorage_release_ratioC = np.compress(self.var.compress_LR,
                                                                      self.var.lakeResStorage_release_ratio)
-
-            elif self.var.reservoir_releases_excel_option:
-                self.var.lakeResStorage_release_ratioC = self.var.reservoir_releases[dateVar['doy']-1]
 
     def dynamic_inloop(self, NoRoutingExecuted):
         """
@@ -778,12 +709,6 @@ class lakes_reservoirs(object):
                                             np.where(self.var.lakeResStorage_release_ratioC > 0,
                                                      self.var.lakeResStorage_release_ratioC * self.var.reservoirStorageM3C * (
                                                              1 / (60 * 60 * 24)), 0))
-
-            if self.var.reservoir_releases_excel_option:
-                reservoirOutflow = np.where(self.var.reservoirFillC > self.var.floodLimitC, reservoirOutflow,
-                                            np.where(self.var.lakeResStorage_release_ratioC > -1,
-                                            self.var.lakeResStorage_release_ratioC * self.var.reservoirStorageM3C *
-                                            (1 / (60 * 60 * 24)), reservoirOutflow))
 
             # Apply reservoirOutflowLimitMask to limit resOutflows based on storagre relative to threshold volume
             # This may override the reservoir_releases behaviour - ATTENTION FROM MIKHAIL/DOR
