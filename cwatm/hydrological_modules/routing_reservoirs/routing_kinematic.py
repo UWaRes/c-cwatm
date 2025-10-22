@@ -488,8 +488,3 @@ class routing_kinematic(object):
         self.var.humanConsumption = globals.inZero.copy()
         self.var.humanUse = globals.inZero.copy()
         self.var.natureUse = globals.inZero.copy()
-        if 'includeCrops' in option:
-            if checkOption('includeCrops'):
-                for i in range(len(self.var.Crops)):
-                    self.var.humanConsumption += self.var.actTransTotal_crops_nonIrr[i]
-                    self.var.humanUse += self.var.actTransTotal_crops_nonIrr[i]

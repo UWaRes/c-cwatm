@@ -10,8 +10,6 @@
 
 from cwatm.management_modules.data_handling import *
 import importlib
-# importlib to import pandas as pd in has crop sentitive version is used
-# import pandas as pd
 
 class initcondition(object):
 
@@ -25,13 +23,8 @@ class initcondition(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    Crops_names                            Internal: List of specific crops                                        --   
-    includeCrops                           1 when includeCrops=True in Settings, 0 otherwise                       bool 
-    Crops                                  Internal: List of specific crops and Kc/Ky parameters                   --   
     includeDesal                                                                                                   --   
-    unlimitedDesal                                                                                                 --   
-    desalAnnualCap                                                                                                 --   
-    reservoir_transfers                    [['Giving reservoir'][i], ['Receiving reservoir'][i], ['Fraction of li  array
+    unlimitedDesal                                                                                                 --                                                                                               --   
     loadInit                               Flag: if true initial conditions are loaded                             --   
     initLoadFile                           load file name of the initial condition data                            --   
     saveInit                               Flag: if true initial conditions are saved                              --   
@@ -46,58 +39,6 @@ class initcondition(object):
     def __init__(self, model):
         self.var = model.var
         self.model = model
-
-    def crops_initialise(self, xl_settings_file_path):
-        pd = importlib.import_module("pandas", package=None)
-        df = pd.read_excel(xl_settings_file_path, sheet_name='Crops')
-
-        # Crops = [ [planting month, [length of growth stage i, kc_i, ky_i]_i]_c]
-        Crops = []
-        Crops_names = []
-        for i in df.index:
-            crop = [df['Planting month'][i]]
-
-            growth_stage_end_month=0
-            for gs in range(1, 5):
-                #gs_parameters = [df['EM' + str(gs)][i], df['KC' + str(gs)][i], df['KY' + str(gs)][i]]
-
-                growth_stage_end_month+=df['GS' + str(gs)][i]
-                gs_parameters = [growth_stage_end_month, df['KC' + str(gs)][i], df['KY' + str(gs)][i]]
-                crop.append(gs_parameters)
-
-            Crops.append(crop)
-            Crops_names.append(df['Crop'][i])
-
-        return Crops, Crops_names
-
-    def reservoir_transfers(self, xl_settings_file_path):
-        pd = importlib.import_module("pandas", package=None)
-        df = pd.read_excel(xl_settings_file_path, sheet_name='Reservoir_transfers')
-
-        # reservoir_transfers = [ [Giving reservoir, Receiving reservoir, fraction of live storage] ]
-        reservoir_transfers = []
-
-        for i in df.index:
-            transfer = [df['Giving reservoir'][i], df['Receiving reservoir'][i], df['Fraction of live storage'][i]]
-            if transfer[2] > 0:
-                reservoir_transfers.append(transfer)
-        return reservoir_transfers
-    
-    
-    def desalinationCapacity(self, xl_settings_file_path):
-        pd = importlib.import_module("pandas", package=None)
-        df = pd.read_excel(xl_settings_file_path, sheet_name='Desalination')
-        
-        s_year = globals.dateVar['dateBegin'].year
-        e_year = globals.dateVar['dateEnd'].year
-        
-        desalCap = {}
-        lastDesal = 0
-        for year in range(s_year, e_year + 1):
-            if np.in1d(year, df['Year']):
-                lastDesal = df[df['Year'] == year]['Capacity'].to_list()[0]
-            desalCap[year] = lastDesal
-        return desalCap
         
     
     def initial(self):
@@ -135,40 +76,6 @@ class initcondition(object):
                     initCondVarValue.append(cond+"["+str(i)+"]")
             i += 1
 
-        self.var.includeCrops = False
-        if "includeCrops" in option:
-            self.var.includeCrops = checkOption('includeCrops')
-
-        if self.var.includeCrops:
-
-            if 'Excel_settings_file' in binding:
-                xl_settings_file_path = cbinding('Excel_settings_file')
-                self.var.Crops, self.var.Crops_names = self.crops_initialise(xl_settings_file_path)
-            else:
-                msg = "The Excel settings file needs to be included into the settings file:\n" \
-                      "Excel_settings_file ="+r"*PATH*\cwatm_settings.xlsx"+"\n"
-                raise CWATMError(msg)
-
-            initCondVar.append('frac_totalIrr_max')
-            initCondVarValue.append('frac_totalIrr_max')
-
-            initCondVar.append('frac_totalnonIrr_max')
-            initCondVarValue.append('frac_totalnonIrr_max')
-
-            for c in range(len(self.var.Crops)):
-
-                initCondVar.append('monthCounter_'+ str(c))
-                initCondVarValue.append('monthCounter['+str(c)+']')
-
-                initCondVar.append('fracCrops_Irr_'+ str(c))
-                initCondVarValue.append('fracCrops_Irr['+str(c)+']')
-
-                initCondVar.append('fracCrops_nonIrr_'+ str(c))
-                initCondVarValue.append('fracCrops_nonIrr['+str(c)+']')
-
-                initCondVar.append('activatedCrops_'+ str(c))
-                initCondVarValue.append('activatedCrops['+str(c)+']')
-
         # water demand
         initCondVar.append("unmetDemandPaddy")
         initCondVarValue.append("unmetDemandPaddy")
@@ -180,12 +87,8 @@ class initcondition(object):
         self.var.unlimitedDesal = False
         if 'includeDesalination' in option:
             self.var.includeDesal = checkOption('includeDesalination')
-        
-        if self.var.includeDesal:
-            self.var.unlimitedDesal = returnBool('unlimitedDesalinationCapacity')
-            if not self.var.unlimitedDesal:
-                xl_settings_file_path = cbinding('Excel_settings_file')
-                self.var.desalAnnualCap = self.desalinationCapacity(xl_settings_file_path)
+            # when desalination is included, unlimited desalination is assumed
+            self.var.unlimitedDesal = True
         
         # groundwater
         initCondVar.append("storGroundwater")
@@ -205,20 +108,12 @@ class initcondition(object):
             initCondVar.extend(Var1)
             initCondVarValue.extend(Var2)
 
-        # lakes & reservoirs
-
         if checkOption('includeWaterBodies'):
             if returnBool('useSmallLakes'):
                 Var1 = ["smalllakeInflow","smalllakeStorage","smalllakeOutflow"]
                 Var2 = ["smalllakeInflowOld","smalllakeVolumeM3","smalllakeOutflow"]
                 initCondVar.extend(Var1)
                 initCondVarValue.extend(Var2)
-
-        if 'reservoir_transfers' in option:
-            if checkOption('reservoir_transfers'):
-                if 'Excel_settings_file' in binding:
-                    xl_settings_file_path = cbinding('Excel_settings_file')
-                    self.var.reservoir_transfers = self.reservoir_transfers(xl_settings_file_path)
 
         # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         # Load init file - a single file can be loaded - needs path and file name
