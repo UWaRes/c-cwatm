@@ -185,8 +185,8 @@ class waterdemand_irrigation:
         # Potential irrigation amount
         #  ========================================
         # Consider cropKC to determine irrigation timing
-        
-        self.var.pot_irrConsumption[No] = np.where(self.var.cropKC[No] > 0.20, np.maximum(0.0, self.var.totAvlWater -readAvlWater), 0.)
+
+        self.var.pot_irrConsumption[No] = np.where(self.var.cropKC[No] > 0.75, np.maximum(0.0, self.var.totAvlWater -readAvlWater), 0.)
 
         # should not be bigger than infiltration capacity
         self.var.pot_irrConsumption[No] = np.minimum(self.var.pot_irrConsumption[No], potInf)
