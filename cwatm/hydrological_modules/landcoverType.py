@@ -241,9 +241,8 @@ class landcoverType(object):
         for variable in landcoverVars:  vars(self.var)[variable] = np.tile(globals.inZero,(6,1))
 
 
-        #for 4 landcover types with soil underneath
-        landcoverVarsSoil = ['arnoBeta']
-        for variable in landcoverVarsSoil:  vars(self.var)[variable] = np.tile(globals.inZero,(4,1))
+        # arnoBeta just for irrigation land cover types
+        self.var.arnoBeta = globals.inZero.copy()
 
         soilChar = ['ws1','ws2','wfc1','wfc2','wwp1','wwp2']
         # For 3 soil layers and 4 landcover types
@@ -272,14 +271,13 @@ class landcoverType(object):
             
             i += 1
 
-        coverType = 'irrNonPaddy'
+
+        # use non-paddy irrigation arnoBeta for both irrigation types
         self.var.arnoBetaOro = (self.var.ElevationStD - 10.0) / (self.var.ElevationStD + 1500.0)
 
         self.var.arnoBetaOro = self.var.arnoBetaOro + loadmap('arnoBeta_add')
-        self.var.arnoBetaOro = np.minimum(1.2, np.maximum(0.01, self.var.arnoBetaOro))
-
-        self.var.arnoBeta[3] = self.var.arnoBetaOro + loadmap(coverType + "_arnoBeta")
-        self.var.arnoBeta[3] = np.minimum(1.2, np.maximum(0.01, self.var.arnoBeta[3]))
+        self.var.arnoBeta = np.minimum(1.2, np.maximum(0.01, self.var.arnoBetaOro))
+        
         
         self.var.minCropKC= loadmap('minCropKC')
         self.var.minTopWaterLayer = loadmap("minTopWaterLayer")
