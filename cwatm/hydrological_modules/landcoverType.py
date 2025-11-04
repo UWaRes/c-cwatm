@@ -276,10 +276,8 @@ class landcoverType(object):
         self.var.arnoBetaOro = (self.var.ElevationStD - 10.0) / (self.var.ElevationStD + 1500.0)
 
         self.var.arnoBetaOro = self.var.arnoBetaOro + loadmap('arnoBeta_add')
-        self.var.arnoBetaOro = np.minimum(1.2, np.maximum(0.01, self.var.arnoBetaOro))
-
-        self.var.arnoBeta = self.var.arnoBetaOro + loadmap('irrNonPaddy_arnoBeta')
-        self.var.arnoBeta = np.minimum(1.2, np.maximum(0.01, self.var.arnoBeta))
+        self.var.arnoBeta = np.minimum(1.2, np.maximum(0.01, self.var.arnoBetaOro))
+        
         
         self.var.minCropKC= loadmap('minCropKC')
         self.var.minTopWaterLayer = loadmap("minTopWaterLayer")
