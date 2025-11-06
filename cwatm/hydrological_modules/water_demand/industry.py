@@ -26,7 +26,7 @@ class waterdemand_industry:
     =====================================  ======================================================================  =====
     industryTime                           Monthly' when industryTimeMonthly = True, and 'Yearly' otherwise.       str  
     indWithdrawalVar                       Settings industryWithdrawalvarname, variable name in industryWaterDema  str  
-    indConsumptionVar                      Settings industryConsuptionvarname, variable name in domesticWaterDema  strin
+    indConsumptionVar                      Settings industryConsumptionvarname, variable name in domesticWaterDema  strin
     InvCellArea                            Inverse of cell area of each simulated mesh                             1/m2 
     M3toM                                  Coefficient to change units                                             --   
     demand_unit                                                                                                    --   
@@ -58,8 +58,8 @@ class waterdemand_industry:
             self.var.indWithdrawalVar = cbinding("industryWithdrawalvarname")
         else:
             self.var.indWithdrawalVar = "industryGrossDemand"
-        if "industryConsuptionvarname" in binding:
-            self.var.indConsumptionVar = cbinding("industryConsuptionvarname")
+        if "industryConsumptionvarname" in binding:
+            self.var.indConsumptionVar = cbinding("industryConsumptionvarname")
         else:
             self.var.indConsumptionVar = "industryNettoDemand"
 
