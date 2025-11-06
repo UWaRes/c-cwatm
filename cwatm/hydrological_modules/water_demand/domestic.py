@@ -27,7 +27,7 @@ class waterdemand_domestic:
     =====================================  ======================================================================  =====
     domesticTime                           Monthly' when domesticTimeMonthly = True, and 'Yearly' otherwise.       str  
     domWithdrawalVar                       Input, domesticWithdrawalvarname, variable name for netCDF              str  
-    domConsumptionVar                      Input, domesticConsuptionvarname, variable name for netCDF              str  
+    domConsumptionVar                      Input, domesticConsumptionvarname, variable name for netCDF              str  
     InvCellArea                            Inverse of cell area of each simulated mesh                             1/m2 
     M3toM                                  Coefficient to change units                                             --   
     domesticDemand                         Domestic demand                                                         m      
@@ -62,8 +62,8 @@ class waterdemand_domestic:
             self.var.domWithdrawalVar = cbinding("domesticWithdrawalvarname")
         else:
             self.var.domWithdrawalVar = "domesticGrossDemand"
-        if "domesticConsuptionvarname" in binding:
-            self.var.domConsumptionVar = cbinding("domesticConsuptionvarname")
+        if "domesticConsumptionvarname" in binding:
+            self.var.domConsumptionVar = cbinding("domesticConsumptionvarname")
         else:
             self.var.domConsumptionVar = "domesticNettoDemand"
 
