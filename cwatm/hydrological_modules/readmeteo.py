@@ -148,7 +148,21 @@ class readmeteo(object):
         # use radiation term in snow melt
         self.var.snowmelt_radiation = False
         self.var.only_radiation = False
-        
+
+        # Load quantile mapping weights if bias correction is enabled
+        if checkOption('bias_correct_runoff'):            
+            csv_path = binding.get('bias_correction_file', None)
+            if csv_path and os.path.exists(csv_path):
+                try:
+                    data = np.genfromtxt(csv_path, delimiter=',', invalid_raise=False)
+                    data = data[~np.isnan(data).any(axis=1)]  # remove rows with NaNs
+                    self.var.quantile_bounds = data[:, 0]
+                    self.var.correction_factors = data[:, 1]
+                except Exception as e:
+                    print("Error reading bias correction file:", e)
+            else:
+                print("Bias correction file not found or not specified.")
+
 
     def dynamic(self):
         """
@@ -221,7 +235,13 @@ class readmeteo(object):
             #    soilWaterStorageCap = self.var.ws1[3] + self.var.ws2[3]
             #    self.var.rootzoneSM = self.var.rootzoneSM * soilWaterStorageCap
 
-                
+        # Apply bias correction if enabled
+        if checkOption('bias_correct_runoff'):
+            self.var.runoff = apply_bias_correction(
+                self.var.runoff,
+                self.var.quantile_bounds,
+                self.var.correction_factors
+            )                
 
         if Flags['calib']:
             # if first clibration run, store all meteo data in a variable
