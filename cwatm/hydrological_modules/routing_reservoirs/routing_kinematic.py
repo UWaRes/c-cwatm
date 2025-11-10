@@ -320,11 +320,6 @@ class routing_kinematic(object):
 
 # ---------------------------------------------------------------------------------
 
-        # if routing is not needed return
-        if not(checkOption('includeRouting')):
-            return
-
-
         Qnew = globals.inZero.copy()
 
         # Evaporation from open channel

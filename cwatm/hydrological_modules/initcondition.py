@@ -52,11 +52,6 @@ class initcondition(object):
 		Reads the parameter *save_initial* and *save_initial* to know if to save or load initial values
         """
 
-        if checkOption('includeRunoffConcentration'):
-            for i in range(10):
-                initCondVar.append("runoff_conc" + str(i + 1))
-                initCondVarValue.append("runoff_conc[" + str(i) + "]")
-
         # soil / landcover
         i = 0
         self.var.coverTypes = list(map(str.strip, cbinding("coverTypes").split(",")))
