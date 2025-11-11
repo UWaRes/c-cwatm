@@ -271,6 +271,8 @@ class landcoverType(object):
             
             i += 1
 
+
+        # use non-paddy irrigation arnoBeta for both irrigation types
         self.var.arnoBetaOro = (self.var.ElevationStD - 10.0) / (self.var.ElevationStD + 1500.0)
 
         self.var.arnoBetaOro = self.var.arnoBetaOro + loadmap('arnoBeta_add')

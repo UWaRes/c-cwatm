@@ -155,10 +155,10 @@ class waterdemand_irrigation:
         #  ========================================
         # depends on relSat and arnoBeta
         
-        satAreaFrac = np.maximum(1 - (1 - relSat),0) ** self.var.arnoBeta[No]
+        satAreaFrac = np.maximum(1 - (1 - relSat),0) ** self.var.arnoBeta
         satAreaFrac = np.maximum(np.minimum(satAreaFrac, 1.0), 0.0)
-        store = soilWaterStorageCap / (self.var.arnoBeta[No] + 1)
-        potBeta = (self.var.arnoBeta[No] + 1) / self.var.arnoBeta[No]
+        store = soilWaterStorageCap / (self.var.arnoBeta + 1)
+        potBeta = (self.var.arnoBeta + 1) / self.var.arnoBeta
         potInf = store - store * (1 - (1 - satAreaFrac) ** potBeta)
 
 
@@ -174,6 +174,27 @@ class waterdemand_irrigation:
         # ignore demand if less than self.var.minimum_irrigation
         self.var.pot_irrConsumption[No] = np.where(self.var.pot_irrConsumption[No] > self.var.minimum_irrigation, self.var.pot_irrConsumption[No], 0)
         self.var.irrDemand[No] = self.var.pot_irrConsumption[No] / self.var.efficiencyNonpaddy
+
+
+        # -----------------
+        # irrPaddy No=2
+        # -----------------
+        No = 2
+
+        # simple approach: use same soil parameters as non-paddy irrigation, but irrigate up to total available water (alphaDepletion=1)
+        # Potential irrigation amount
+        #  ========================================
+        # Consider cropKC to determine irrigation timing
+        
+        self.var.pot_irrConsumption[No] = np.where(self.var.cropKC[No] > 0.20, np.maximum(0.0, self.var.totAvlWater -readAvlWater), 0.)
+
+        # should not be bigger than infiltration capacity
+        self.var.pot_irrConsumption[No] = np.minimum(self.var.pot_irrConsumption[No], potInf)
+
+        # ignore demand if less than 1 m3
+        self.var.pot_irrConsumption[No] = np.where(self.var.pot_irrConsumption[No] > self.var.InvCellArea, self.var.pot_irrConsumption[No], 0)
+        self.var.irrDemand[No] = self.var.pot_irrConsumption[No] / self.var.efficiencyPaddy
+
         
         # Crop coefficients
         self.var.cropkcpad = self.var.cropKC[2]
