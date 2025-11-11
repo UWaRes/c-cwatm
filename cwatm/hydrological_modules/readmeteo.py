@@ -203,7 +203,7 @@ class readmeteo(object):
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.DtDay * self.var.con_e
+            self.var.EWRef = self.var.EWRef * self.var.con_e
             
         elif binding['coupl_flag']=='offline_coupl':   
             # for each time step: read forcing file and convert to C-CWatM grid
@@ -223,7 +223,7 @@ class readmeteo(object):
             # read open water evaporation
             meteoforc.read_forcing('EWRef',binding['OWEName'])
             meteoforc.regridding('EWRef')
-            self.var.EWRef = meteoforc.EWRef * self.var.DtDay * self.var.con_e # TODO: check conversion
+            self.var.EWRef = meteoforc.EWRef * self.var.con_e # TODO: check conversion
 
             # read rootzone soil moisture
             meteoforc.read_forcing('rootzoneSM',binding['SMName'])

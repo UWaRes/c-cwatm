@@ -99,14 +99,11 @@ class miscInitial(object):
         self.var.InvCellArea = 1.0 / self.var.cellArea
         # Inverse of pixel size [1/m]
         self.var.DtSec = 86400.0
-        self.var.DtDay = self.var.DtSec / 86400
         # Time step, expressed as fraction of day (used to convert
         # rate variables that are expressed as a quantity per day to
         # into an amount per time step)
         self.var.InvDtSec = 1 / self.var.DtSec
         # Inverse of time step [1/s]
-        self.var.InvDtDay = 1 / self.var.DtDay
-        # Inverse of time step [1/d]
 
        # self.var.DtSecChannel = loadmap('DtSecChannel')
         # Sub time step used for kinematic wave channel routing [seconds]
@@ -121,9 +118,7 @@ class miscInitial(object):
         self.var.M3toM = 1 / self.var.MtoM3
         # Multiplier to convert from cubic metres to m water slice
 
-        self.var.con_precipitation = loadmap('precipitation_coversion')
-
-        self.var.con_e = loadmap('evaporation_coversion')
+        self.var.con_e = loadmap('evaporation_conversion')
 
         self.var.twothird = 2.0 / 3.0
 
