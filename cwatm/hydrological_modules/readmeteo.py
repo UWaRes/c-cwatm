@@ -180,8 +180,16 @@ class readmeteo(object):
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.conv_evap    
-             
+            self.var.EWRef = self.var.EWRef * self.var.conv_evap
+            
+
+        # Apply bias correction if enabled
+        if checkOption('bias_correct_runoff'):
+            self.var.runoff = apply_bias_correction(
+                self.var.runoff,
+                self.var.quantile_bounds,
+                self.var.correction_factors
+            )                
 
         if Flags['calib']:
             # if first clibration run, store all meteo data in a variable
