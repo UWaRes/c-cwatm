@@ -307,8 +307,9 @@ for t in range(5): # same number of time loops as C-CWatM
     # include dummy send and put also in ccwatm
     #var_id[0].put(seconds_passed, data_t[::-1,:])
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
-    var_id[0].put(seconds_passed, meteoforc.runoff.values/100.)
-    var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values/1000.)
+    # C-CWatM needs input in [m]
+    var_id[0].put(seconds_passed, meteoforc.runoff.values)
+    var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values)
     var_id[2].put(seconds_passed, meteoforc.EWRef.values)
     var_id[3].put(seconds_passed, meteoforc.rootzoneSM.values)
 
