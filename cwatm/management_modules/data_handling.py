@@ -1833,3 +1833,16 @@ def divideValues(x,y, default = 0.):
     # have to solve this without err handler to get the error message back
 
     return z
+
+def apply_bias_correction(runoff_array, quantile_bounds, correction_factors):
+    """
+    Apply bias correction based on quantile mapping by providing correcting factors
+
+    :param runoff_array: runoff array
+    :param quantile_bounds: upper bounds of each quantile
+    :param correction_factors: correction factors corresponding to each quantile
+
+    """
+    indices = np.digitize(runoff_array, quantile_bounds, right=True)
+    factors = np.array([correction_factors[i] if i < len(correction_factors) else 1.0 for i in indices])
+    return runoff_array * factors
