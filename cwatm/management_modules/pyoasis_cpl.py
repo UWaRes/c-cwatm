@@ -175,6 +175,11 @@ class pyoasis_cpl(object):
         # -> TODO: irrigation water
         # new flag: coupl_irri
 
+        
+        # write to cwatm variables
+        mapnp1 = np.ma.masked_array(field_recv_runoff, maskinfo['mask'])
+        mapnp1 = np.ma.compressed(mapnp1)
+        self.var.runoff = np.maximum(0., mapnp1)
 
     # ------- OASIS3-MCT functions -------
     @staticmethod 

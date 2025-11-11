@@ -143,6 +143,49 @@ def spherical_polygon_area(coords, radius=1.0):
     # Scale by radius squared if needed (e.g. Earth: radius=6371e3 for meters)
     return np.abs(total_area * radius ** 2)
 
+<<<<<<< HEAD
+=======
+# get values from settingsfile
+def parse_settings_file(filepath):
+    settings = {}
+    current_section = None
+    with open(filepath, 'r') as f:
+        for line in f:
+            # Remove comments and whitespace
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            # Detect section headers
+            if line.startswith('[') and line.endswith(']'):
+                current_section = line[1:-1].strip()
+                settings[current_section] = {}
+                continue
+
+            # Parse key-value pairs
+            if '=' in line and current_section:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+                settings[current_section][key] = value
+
+    return settings
+
+# -- get data path from settings file ---
+#starttime = time.time()
+binding = parse_settings_file('settings_CCWatM_5min_example.ini')
+#print(time.time()-starttime)
+#print('Keys:',list(binding['COUPLING'].keys()))
+meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
+
+# read monthly files
+# TODO: include in time loop, reload every month
+starttime = binding['TIME-RELATED_CONSTANTS']['StepStart']
+ctime = datetime.datetime.strptime(starttime, '%d/%m/%Y')
+#meteoforc.read_forcing(ctime,'runoff',binding['COUPLING']['RunoffName'])
+#meteoforc.read_forcing(ctime,'sum_gwRecharge',binding['COUPLING']['GWName'])
+
+>>>>>>> 8cbb515 (merge conflict)
 
 
 # -- read grid data of REMO input file---
@@ -228,13 +271,13 @@ w_unit.flush()
 ### OASIS_ENDDEF ###
 comp.enddef()
 
-# -------------------------------------------------------------------
+# -------------- get and put -----------------
 
 # Load forcing data (e.g., NetCDF)
 # maybe read from settings file??
-filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
-ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
-data_array = ds['RUNOFF']  # Replace with your variable name
+#filepath = '/work/ch0636/projects/uwares/CWatM_forcing/Remo_ERA5_27lev/daily_means/2000/'
+#ds = xr.open_dataset(filepath+'e100001n_c160_200001.nc')
+#data_array = ds['RUNOFF']  # Replace with your variable name
 
 #print(lat.shape)
 
@@ -245,15 +288,20 @@ for t in range(5): # same number of time loops as C-CWatM
     seconds_passed = int(t * 86400.)
     print('dummy',seconds_passed)
 
+    currenttime = ctime + datetime.timedelta(seconds=seconds_passed)
+    meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
+    meteoforc.read_forcing(currenttime,'sum_gwRecharge',binding['COUPLING']['GWName'])
+    
     # Extract data for current timestep
-    data_t = data_array.isel(time=t).values #/ 100.
+    #data_t = data_array.isel(time=t).values #/ 100.
+    #data_t = meteoforc.runoff.values
 
     # send (and get data), see atmos.py example
     # include dummy send and put also in ccwatm
     #var_id[0].put(seconds_passed, data_t[::-1,:])
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
-    var_id[0].put(seconds_passed, data_t)
-    var_id[1].put(seconds_passed, data_t)
+    var_id[0].put(seconds_passed, meteoforc.runoff.values/100.)
+    var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values/1000.)
 
 # Finalize
 del comp
