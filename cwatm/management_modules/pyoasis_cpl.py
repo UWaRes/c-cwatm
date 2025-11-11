@@ -48,7 +48,6 @@ class pyoasis_cpl(object):
         self.model = model
 
     def initial(self):
-<<<<<<< HEAD
         """
         Initialize the OASIS coupling interface for the C-CWatM hydrological component.
 
@@ -91,7 +90,7 @@ class pyoasis_cpl(object):
         self.w_unit.flush()
         # write oasis grid information
         #self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid')
-        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid',grid_clon,grid_clat)
+        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid',grid_clon,grid_clat))
 
         # --- 4) declaration of coupling fields ---
         # needs to match namcouple
@@ -275,22 +274,6 @@ class pyoasis_cpl(object):
 	
         grid.write()
 
-=======
-        self.comp = pyoasis.Component("hydro_component")
-        # initialize pyoasis component, see toy model
-        # 1) get localcomm
-        # 2) partition definition
-        # 3) grid definition
-        # 4) declaration of coupling fields
-
-        ### OASIS_ENDDEF ###
-        self.comp.enddef()
-
-    def dynamic(self):
-        # 1) get
-        # 2) put
-        pass
->>>>>>> 83e6f7a (merge conflict)
 
 
 
