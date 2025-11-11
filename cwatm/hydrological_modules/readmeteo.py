@@ -23,50 +23,19 @@ class readmeteo(object):
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
     =====================================  ======================================================================  =====
-    DtDay                                  seconds in a timestep (default=86400)                                   s    
-    con_precipitation                      conversion factor for precipitation                                     --   
-    con_e                                  conversion factor for evaporation                                       --   
-    ETRef                                  potential evapotranspiration rate from reference crop                   m    
-    Precipitation                          Precipitation (input for the model)                                     m    
-    only_radiation                                                                                                  --
-    TMin                                   minimum air temperature                                                 K    
-    TMax                                   maximum air temperature                                                 K    
-    Tavg                                   Input, average air Temperature                                          K    
-    Rsds                                   short wave downward surface radiation fluxes                            W/m2 
-    EAct                                                                                                           --   
-    Psurf                                  Instantaneous surface pressure                                          Pa   
-    Qair                                   specific humidity                                                       kg/kg
-    Rsdl                                   long wave downward surface radiation fluxes                             W/m2 
-    Wind                                   wind speed                                                              m/s  
+    conv_evap                              conversion factor for evaporation                                       --   
+    conv_runoff                            conversion factor for runoff                                            --
+    conv_groundw                           conversion factor for groundwater recharge                              --
+    conv_soilw                             conversion factor for soilwater content                                 --   
+    only_radiation                                                                                                 --  
     EWRef                                  potential evaporation rate from water surface                           m    
     meteomapsscale                         if meteo maps have the same extend as the other spatial static maps ->  --   
     meteodown                              if meteo maps should be downscaled                                      --   
     InterpolationMethod                                                                                            --   
     buffer                                                                                                         --   
     glaciermeltMaps                                                                                                --   
-    glacierrainMaps                                                                                                --   
-    wc2_tavg                               High resolution WorldClim map for average temperature                   K    
-    wc4_tavg                               upscaled to low resolution WorldClim map for average temperature        K    
-    wc2_tmin                               High resolution WorldClim map for min temperature                       K    
-    wc4_tmin                               upscaled to low resolution WorldClim map for min temperature            K    
-    wc2_tmax                               High resolution WorldClim map for max temperature                       K    
-    wc4_tmax                               upscaled to low resolution WorldClim map for max temperature            K    
-    wc2_prec                               High resolution WorldClim map for precipitation                         m    
-    wc4_prec                               upscaled to low resolution WorldClim map for precipitation              m    
-    xcoarse_prec                                                                                                   --   
-    ycoarse_prec                                                                                                   --   
-    xfine_prec                                                                                                     --   
-    yfine_prec                                                                                                     --   
-    meshlist_prec                                                                                                  --   
-    xcoarse_tavg                                                                                                   --   
-    ycoarse_tavg                                                                                                   --   
-    xfine_tavg                                                                                                     --   
-    yfine_tavg                                                                                                     --   
-    meshlist_tavg                                                                                                  --   
-    meteo                                                                                                          --   
-    prec                                   precipitation in m                                                      m    
-    temp                                   average temperature in Celsius deg                                      °C   
-    WtoMJ                                  Conversion factor from [W] to [MJ] for radiation: 86400 * 1E-6          --   
+    glacierrainMaps                                                                                                --       
+    meteo                                                                                                          --       
     includeGlaciers                                                                                                --   
     includeOnlyGlaciersMelt                                                                                        --   
     GlacierMelt                                                                                                    --   
@@ -191,15 +160,15 @@ class readmeteo(object):
             # extract forcing data from Maps (read in initial)
             # read runoff
             self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.runoff = np.maximum(0., self.var.runoff)
+            self.var.runoff = np.maximum(0., self.var.runoff * self.var.conv_runoff)
     
             # read ground water recharge
             self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge)
+            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge * self.var.conv_groundw)
             
             # read rootzone soil moisture
             self.var.rootzoneSM, MaskMapBoundary = readmeteodata(self.var.SMMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.rootzoneSM = np.maximum(0., self.var.rootzoneSM)
+            self.var.rootzoneSM = np.maximum(0., self.var.rootzoneSM * self.var.conv_soilw)
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
