@@ -141,6 +141,7 @@ class pyoasis_cpl(object):
         
         # ----- 1) OASIS get -----
         # same order as declared in pyoasis_cpl.initial(); needs to match namcouple
+        # TODO: flip
         field_recv_runoff = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))
         self.var.oasisvar_id[0].get(seconds_passed, field_recv_runoff)
         field_recv_gwRecharge = pyoasis.asarray(np.full((maskmapAttr['col'], maskmapAttr['row']), -1.0))

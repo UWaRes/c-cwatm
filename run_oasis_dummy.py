@@ -1,8 +1,19 @@
+# -------------------------------------------------------------------------
+# Name:        run_oasis_dummy
+# Purpose:     Read REMO forcing data for every time step and send them
+#              to C-CWatM using the OASIS3-MCT coupler.
+#              Can be adjusted for different forcing datasets.
+#
+# Author:      Amelie Schmitt
+#
+# Created:     25/07/2025
+# Copyright:   (c) Amelie Schmitt 2025 
+# -------------------------------------------------------------------------
+
 import pyoasis
 from pyoasis import OASIS
 import xarray as xr
 import numpy as np
-
 import sys
 import os
 
@@ -154,21 +165,21 @@ def parse_settings_file(filepath):
             if not line or line.startswith('#'):
                 continue
 
-            # Detect section headers
-            if line.startswith('[') and line.endswith(']'):
-                current_section = line[1:-1].strip()
-                settings[current_section] = {}
-                continue
+    # --- derive grid corners and grid cell area ---
+    # optional: only required for certain regridding methods
+    if 0:
+        rot_pole_lon = gridfile.rotated_latitude_longitude.grid_north_pole_longitude
+        rot_pole_lat = gridfile.rotated_latitude_longitude.grid_north_pole_latitude
+        # TODO: check orientation
+        lat_rot,lon_rot = np.meshgrid(gridfile['rlat'].values,gridfile['rlon'].values)
+        grid_clon_rot, grid_clat_rot = grid_tools.compute_grid_corners(lon_rot,lat_rot)
+        grid_clon, grid_clat = grid_tools.unrot_coordinates(grid_clon_rot, grid_clat_rot, rot_pole_lon, rot_pole_lat)
+        # calculation takes about 1s
+        cell_areas = grid_tools.compute_grid_cell_areas(grid_clon, grid_clat)
 
-            # Parse key-value pairs
-            if '=' in line and current_section:
-                key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip()
-                settings[current_section][key] = value
+    return nlon_forcing,nlat_forcing,lon_2d,lat_2d,1-landmask_input, soilwat_factor
 
-    return settings
-
+<<<<<<< HEAD
 # -- get data path from settings file ---
 #starttime = time.time()
 binding = parse_settings_file('settings_CCWatM_5min_example.ini')
@@ -270,6 +281,32 @@ w_unit.flush()
 comp.enddef()
 
 # -------------- get and put -----------------
+=======
+
+############################
+# ----- Initialization -----
+############################
+
+# --- get info from settings file ---
+settingsfile = sys.argv[1]
+binding = parse_settings_file(settingsfile)
+starttime, simulated_days = read_modelrun_info(binding)
+
+# --- initialize reading of forcing data ---
+meteoforc = MeteoForc2Var(binding['COUPLING']['PathForc'],binding['COUPLING']['fmodel_flag'])
+
+# --- read remo grid information and other info ---
+nlon_forcing,nlat_forcing,lon_2d,lat_2d,landmask_input,soilwat_factor = read_remo_info(binding['COUPLING']['PathForc'],starttime)
+
+# --- initialize OASIS coupler ---
+# transpose REMO grid to match C-CWatM orientation
+comp,w_unit,var_id = init_oasis_forcing(nlon_forcing,nlat_forcing,lon_2d.T,lat_2d.T,landmask_input.T)
+
+
+#######################
+# ----- Time loop -----
+#######################
+>>>>>>> d9b389c (merge conflict)
 
 # Load forcing data (e.g., NetCDF)
 # maybe read from settings file??
@@ -288,13 +325,20 @@ WSMX = np.squeeze(ds['WSMX'].values)
 
 for t in range(5): # same number of time loops as C-CWatM
     seconds_passed = int(t * 86400.)
+<<<<<<< HEAD
     print('dummy',seconds_passed)
 
     currenttime = ctime + datetime.timedelta(seconds=seconds_passed)
+=======
+    currenttime = starttime + datetime.timedelta(seconds=seconds_passed)
+
+    # --- read REMO forcing ---
+>>>>>>> d9b389c (merge conflict)
     meteoforc.read_forcing(currenttime,'runoff',binding['COUPLING']['RunoffName'])
     meteoforc.read_forcing(currenttime,'sum_gwRecharge',binding['COUPLING']['GWName'])
     meteoforc.read_forcing(currenttime,'EWRef',binding['COUPLING']['OWEName'])
     meteoforc.read_forcing(currenttime,'rootzoneSM',binding['COUPLING']['SMName'])
+<<<<<<< HEAD
     # note: this is in percent, 
     # needs to be multiplied with soilWaterStorageCap later
     meteoforc.rootzoneSM = meteoforc.rootzoneSM * FCAP / WSMX
@@ -307,12 +351,19 @@ for t in range(5): # same number of time loops as C-CWatM
     # include dummy send and put also in ccwatm
     #var_id[0].put(seconds_passed, data_t[::-1,:])
     #var_id[0].put(seconds_passed, data_t.T[:,::-1])
-    # C-CWatM needs input in [m]
-    var_id[0].put(seconds_passed, meteoforc.runoff.values)
-    var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values)
-    var_id[2].put(seconds_passed, meteoforc.EWRef.values)
-    var_id[3].put(seconds_passed, meteoforc.rootzoneSM.values)
+=======
+    # transform soil water content from [m] to [%]
+    meteoforc.rootzoneSM = meteoforc.rootzoneSM * soilwat_factor
 
-# Finalize
+    # -------------- get and put -----------------
+>>>>>>> d9b389c (merge conflict)
+    # C-CWatM needs input in [m]
+    # transpose REMO variables to match C-CWatM orientation
+    var_id[0].put(seconds_passed, meteoforc.runoff.values.T)
+    var_id[1].put(seconds_passed, meteoforc.sum_gwRecharge.values.T)
+    var_id[2].put(seconds_passed, meteoforc.EWRef.values.T)
+    var_id[3].put(seconds_passed, meteoforc.rootzoneSM.values.T)
+
+# --- finalize OASIS ---
 del comp
 
