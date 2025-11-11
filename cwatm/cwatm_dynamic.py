@@ -100,8 +100,6 @@ class CWATModel_dyn(DynamicModel):
         self.output_module.dynamic()
         timemeasure("Output")  # 5. timing
 
-
-
         self.init_module.dynamic()
 
         for i in range(len(timeMes)):

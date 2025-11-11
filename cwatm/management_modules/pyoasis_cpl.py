@@ -48,6 +48,7 @@ class pyoasis_cpl(object):
         self.model = model
 
     def initial(self):
+<<<<<<< HEAD
         """
         Initialize the OASIS coupling interface for the C-CWatM hydrological component.
 
@@ -273,5 +274,24 @@ class pyoasis_cpl(object):
             grid.set_area(grid_area)
 	
         grid.write()
+
+=======
+        self.comp = pyoasis.Component("hydro_component")
+        # initialize pyoasis component, see toy model
+        # 1) get localcomm
+        # 2) partition definition
+        # 3) grid definition
+        # 4) declaration of coupling fields
+
+        ### OASIS_ENDDEF ###
+        self.comp.enddef()
+
+    def dynamic(self):
+        # 1) get
+        # 2) put
+        pass
+>>>>>>> 83e6f7a (merge conflict)
+
+
 
 
