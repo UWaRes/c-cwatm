@@ -118,7 +118,9 @@ FIELD_SEND_EWRef ccwatm_recv_EWRef 1 86400 1 fdocn.nc EXPOUT
 forcing_grid ccwatm_grid 
 R  0  R  0
 SCRIPR 
-DISTWGT LR SCALAR LATLON 10 1 
+DISTWGT LR SCALAR LATLON 1 4
+#DISTWGT LR SCALAR LATLON 10 1
+#DISTWGT LR SCALAR LATLON 10 10 
 # 
 ######################################################
 #
@@ -128,7 +130,9 @@ FIELD_SEND_rootzoneSM ccwatm_recv_rootzoneSM 1 86400 1 fdocn.nc EXPOUT
 forcing_grid ccwatm_grid 
 R  0  R  0
 SCRIPR 
-DISTWGT LR SCALAR LATLON 10 1 
+DISTWGT LR SCALAR LATLON 1 4
+#DISTWGT LR SCALAR LATLON 10 1 
+#DISTWGT LR SCALAR LATLON 10 10
 # 
 ######################################################
 #
