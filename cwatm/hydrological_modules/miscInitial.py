@@ -41,7 +41,7 @@ class miscInitial(object):
     conv_evap                              conversion factor for evaporation                                       --   
     conv_runoff                            conversion factor for runoff                                            --
     conv_groundw                           conversion factor for groundwater recharge                              --
-    conv_soilw                             conversion factor for soilwater content                                 --
+    conv_soilw                             conversion factor for soilwater content                                 -- 
     =====================================  ======================================================================  =====
 
     **Functions**
