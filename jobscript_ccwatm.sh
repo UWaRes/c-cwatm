@@ -27,12 +27,12 @@ source /home/g/g300116/test_oasis/oasis3-mct/INSTALL_OASIS.levante/python/init.s
 
 settingsfile="settings_CCWatM_5min_example.ini"
 
-#time mpirun --mca opal_common_ucx_opal_mem_hooks 1 \
-#  -np 1 python3 run_cwatm.py "$settingsfile" : \
-#  -np 1 python3 run_oasis_forcing_REMO.py "$settingsfile"
+time mpirun --mca opal_common_ucx_opal_mem_hooks 1 \
+  -np 1 python3 run_cwatm.py "$settingsfile" : \
+  -np 1 python3 run_oasis_forcing_REMO.py "$settingsfile"
 
 #time mpirun --mca opal_common_ucx_opal_mem_hooks 1 -np 1 python3 run_cwatm.py settings_CCWatM_5min_example.ini : -np 1 python3 run_oasis_dummy.py settings_CCWatM_5min_example.ini
 
-time mpirun -np 1 python3 run_cwatm.py settings_CCWatM_5min_example.ini
+#time mpirun -np 1 python3 run_cwatm.py settings_CCWatM_5min_example.ini
 #time srun -np 1 python3 run_cwatm.py "$settingsfile"
 #time mpirun -np 1 python3 run_oasis_dummy.py

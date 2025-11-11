@@ -23,7 +23,6 @@ from cwatm.hydrological_modules.lakes_reservoirs import lakes_reservoirs
 
 from cwatm.management_modules.output import *
 from cwatm.management_modules.data_handling import *
-from cwatm.management_modules.coupling import *
 import os, glob
 
 
@@ -101,10 +100,8 @@ class CWATModel_ini(DynamicModel):
 
         # as: OASIS3-MCT coupler
         if binding['coupl_flag']=='oasis_coupl':
-        #if binding['coupl_flag']=='no_coupl': # for testing
             from cwatm.management_modules.pyoasis_cpl import pyoasis_cpl
             self.pyoasis_cpl_module = pyoasis_cpl(self)
-
 
         # ----------------------------------------
         # reading of the metainformation of variables to put into output netcdfs
@@ -138,11 +135,6 @@ class CWATModel_ini(DynamicModel):
         self.output_module.initial()
         self.environflow_module.initial()
 
-        # TODO: delete after testing
-        # as: initialize oasis coupling        
-        #if binding['coupl_flag']=='oasis_coupl':
-        #if binding['coupl_flag']=='no_coupl': # for testing
-        #    self.pyoasis_cpl_module.initial()    
 
 
 

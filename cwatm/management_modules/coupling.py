@@ -80,7 +80,7 @@ class MeteoForc2Var:
             ds = xr.open_dataset(forc_filename)  
             if self.fmodel_flag == 'remo':
                 # convert time format for REMO forcing
-                ds = parse_dates(ds)
+                ds = MeteoForc2Var.parse_dates(ds)
             setattr(self, varflag+'_infile', ds)
 
         # select data for specified date 
@@ -161,7 +161,7 @@ class MeteoForc2Var:
         Functionality based on the pyremo package.
         """
         ds = ds.copy()
-        ds["time"] = [num2date(date) for date in ds.time]
+        ds["time"] = [MeteoForc2Var.num2date(date) for date in ds.time]
         return ds
 
     @staticmethod
