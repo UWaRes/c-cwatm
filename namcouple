@@ -112,3 +112,23 @@ DISTWGT LR SCALAR LATLON 10 1
 # 
 ######################################################
 #
+# Field 3: evaporation over water to C-CWatM forcing 
+#
+FIELD_SEND_EWRef ccwatm_recv_EWRef 1 86400 1 fdocn.nc EXPOUT
+forcing_grid ccwatm_grid 
+R  0  R  0
+SCRIPR 
+DISTWGT LR SCALAR LATLON 10 1 
+# 
+######################################################
+#
+# Field 4: rootzone soil moisture to C-CWatM forcing 
+#
+FIELD_SEND_rootzoneSM ccwatm_recv_rootzoneSM 1 86400 1 fdocn.nc EXPOUT
+forcing_grid ccwatm_grid 
+R  0  R  0
+SCRIPR 
+DISTWGT LR SCALAR LATLON 10 1 
+# 
+######################################################
+#
