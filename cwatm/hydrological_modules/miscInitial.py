@@ -37,9 +37,11 @@ class miscInitial(object):
     InvDtDay                               inverse seconds in a timestep (default=86400)                           1/s  
     MMtoM                                  Coefficient to change units                                             --   
     MtoMM                                  Coefficient to change units                                             --   
-    M3toM                                  Coefficient to change units                                             --   
-    con_precipitation                      conversion factor for precipitation                                     --   
-    con_e                                  conversion factor for evaporation                                       --   
+    M3toM                                  Coefficient to change units                                             --    
+    conv_evap                              conversion factor for evaporation                                       --   
+    conv_runoff                            conversion factor for runoff                                            --
+    conv_groundw                           conversion factor for groundwater recharge                              --
+    conv_soilw                             conversion factor for soilwater content                                 -- 
     =====================================  ======================================================================  =====
 
     **Functions**
@@ -118,7 +120,11 @@ class miscInitial(object):
         self.var.M3toM = 1 / self.var.MtoM3
         # Multiplier to convert from cubic metres to m water slice
 
-        self.var.con_e = loadmap('evaporation_conversion')
+        # Read conversion factors for forcing data
+        self.var.conv_runoff = loadmap('runoff_conversion')
+        self.var.conv_groundw = loadmap('groundwater_conversion')
+        self.var.conv_evap = loadmap('evaporation_conversion')
+        self.var.conv_soilw = loadmap('soilwater_conversion')
 
         self.var.twothird = 2.0 / 3.0
 
