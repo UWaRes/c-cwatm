@@ -102,3 +102,13 @@ DISTWGT LR SCALAR LATLON 1 4
 # 
 ######################################################
 #
+# Field 2: ground water recharge to C-CWatM forcing 
+#
+FIELD_SEND_gwRecharge ccwatm_recv_gwRecharge 1 86400 1 fdocn.nc EXPOUT
+forcing_grid ccwatm_grid 
+R  0  R  0
+SCRIPR 
+DISTWGT LR SCALAR LATLON 10 1 
+# 
+######################################################
+#
