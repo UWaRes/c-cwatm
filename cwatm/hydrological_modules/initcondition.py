@@ -61,21 +61,6 @@ class initcondition(object):
         i = 0
         self.var.coverTypes = list(map(str.strip, cbinding("coverTypes").split(",")))
 
-        # soil paddy irrigation
-        initCondVar.append("topwater")
-        initCondVarValue.append("topwater")
-
-        for coverType in self.var.coverTypes:
-            if coverType in ['forest', 'grassland', 'irrPaddy', 'irrNonPaddy']:
-                for cond in ["interceptStor", "w1","w2","w3"]:
-                    initCondVar.append(coverType+"_"+ cond)
-                    initCondVarValue.append(cond+"["+str(i)+"]")
-            if coverType in ['sealed']:
-                for cond in ["interceptStor"]:
-                    initCondVar.append(coverType+"_"+ cond)
-                    initCondVarValue.append(cond+"["+str(i)+"]")
-            i += 1
-
         # water demand
         initCondVar.append("unmetDemandPaddy")
         initCondVarValue.append("unmetDemandPaddy")
