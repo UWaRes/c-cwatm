@@ -94,11 +94,8 @@ class lakes_res_small(object):
             # lake discharge at outlet to calculate alpha: parameter of channel width, gravity and weir coefficient
             # Lake parameter A (suggested  value equal to outflow width in [m])
             # multiplied with the calibration parameter LakeMultiplier
-            testRunoff = "averageRunoff" in binding
-            if testRunoff:
-                self.var.smalllakeDis0 = loadmap('averageRunoff') *  self.var.smallpart * self.var.cellArea * self.var.InvDtSec
-            else:
-                self.var.smalllakeDis0 = loadmap('smallwaterBodyDis')
+ 
+            self.var.smalllakeDis0 = loadmap('smallwaterBodyDis')
             self.var.smalllakeDis0 = np.maximum(self.var.smalllakeDis0, 0.01)
             chanwidth = 7.1 * np.power(self.var.smalllakeDis0, 0.539)
             self.var.smalllakeA = loadmap('lakeAFactor') * 0.612 * 2 / 3 * chanwidth * (2 * 9.81) ** 0.5
