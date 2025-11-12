@@ -90,7 +90,7 @@ class pyoasis_cpl(object):
         self.w_unit.flush()
         # write oasis grid information
         #self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid')
-        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid',grid_clon,grid_clat))
+        self.oasis_define_grid(nlon_cwatm,nlat_cwatm,lon_2d,lat_2d,np.fliplr(maskinfo['mask'].T),self.partition,'ccwatm_grid',grid_clon,grid_clat)
 
         # --- 4) declaration of coupling fields ---
         # needs to match namcouple
@@ -175,11 +175,6 @@ class pyoasis_cpl(object):
         # -> TODO: irrigation water
         # new flag: coupl_irri
 
-        
-        # --- write to cwatm variables ---
-        mapnp1 = np.ma.masked_array(field_recv_runoff.T[::-1,:], maskinfo['mask'])
-        mapnp1 = np.ma.compressed(mapnp1)
-        self.var.runoff = np.maximum(0., mapnp1 * self.var.conv_runoff)
 
     # ------- OASIS3-MCT functions -------
     @staticmethod 
@@ -278,8 +273,3 @@ class pyoasis_cpl(object):
             grid.set_area(grid_area)
 	
         grid.write()
-
-
-
-
-

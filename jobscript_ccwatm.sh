@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --job-name=ccwatm                     # Specify job name
-#SBATCH --partition=shared         # Specify partition name for job execution
+#SBATCH --partition=compute         # Specify partition name for job execution
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=2
 #SBATCH --time=00:45:00                       # Set a limit on the total run time
