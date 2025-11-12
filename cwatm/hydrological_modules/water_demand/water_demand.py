@@ -142,8 +142,7 @@ class water_demand:
     swAbstractionFraction_Lift_Industry    Input, Fraction of Industrial water demand to be satisfied from Lift a  %    
     swAbstractionFraction_Lift_Irrigation  Input, Fraction of Irrigation demand to be satisfied from Lift areas    %    
     using_lift_areas                       True if using_lift_areas = True in Settings, False otherwise            bool 
-    lift_command_areas                                                                                             --   
-    allocSegments                                                                                                  --   
+    lift_command_areas                                                                                             --                                                                                                 --   
     swAbstractionFraction                  Input, Fraction of demands to be satisfied with surface water           %    
     allocation_zone                                                                                                --   
     leakage                                Canal leakage leading to either groundwater recharge or runoff          m3   
@@ -587,15 +586,6 @@ class water_demand:
             # convert baseflow from m to m3/s
             if returnBool('baseflowInM'):
                 averageBaseflowInput = averageBaseflowInput * self.var.cellArea * self.var.InvDtSec
-
-            if checkOption('usingAllocSegments'):
-                averageBaseflowInput = np.where(self.var.allocSegments > 0,
-                                                npareaaverage(averageBaseflowInput, self.var.allocSegments),
-                                                averageBaseflowInput)
-
-                # averageUpstreamInput = np.where(self.var.allocSegments > 0,
-                #                                npareamaximum(averageDischargeInput, self.var.allocSegments),
-                #                                averageDischargeInput)
 
             swAbstractionFraction = np.maximum(0.0, np.minimum(1.0, averageDischargeInput / np.maximum(1e-20,
                                                                                                         averageDischargeInput + averageBaseflowInput)))
