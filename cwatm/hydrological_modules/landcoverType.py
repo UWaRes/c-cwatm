@@ -71,7 +71,6 @@ class landcoverType(object):
     leakageIntoGw                          Canal leakage leading to groundwater recharge                           m    
     leakageIntoRunoff                      Canal leakage leading to runoff                                         m    
     dynamicLandcover                                                                                               --   
-    staticLandCoverMaps                    1=staticLandCoverMaps in settings file is True, 0=otherwise             --   
     landcoverSum                                                                                                   --   
     sum_interceptStor                      Total of simulated vegetation interception storage including all landc  m    
     minTopWaterLayer                                                                                               --   
@@ -219,10 +218,6 @@ class landcoverType(object):
             self.var.dynamicLandcover = True
         else:
             self.var.dynamicLandcover = False
-
-        self.var.staticLandCoverMaps = False
-        if "staticLandCoverMaps" in option:
-            self.var.staticLandCoverMaps = checkOption('staticLandCoverMaps')
         
         self.var.coverTypes= list(map(str.strip, cbinding("coverTypes").split(",")))
         landcoverAll = ['fracVegCover','interceptStor']
@@ -305,29 +300,20 @@ class landcoverType(object):
 
         if init and dynamic:
 
-            if self.var.staticLandCoverMaps:
-
-                self.var.fracVegCover[0] = loadmap('forest_fracVegCover')
-                self.var.fracVegCover[2] = loadmap('irrPaddy_fracVegCover')
-                self.var.fracVegCover[3] = loadmap('irrNonPaddy_fracVegCover')
-                self.var.fracVegCover[4] = loadmap('sealed_fracVegCover')
-                self.var.fracVegCover[5] = loadmap('water_fracVegCover')
-
+            if self.var.dynamicLandcover:
+                landcoverYear = dateVar['currDate']
             else:
-                if self.var.dynamicLandcover:
-                    landcoverYear = dateVar['currDate']
-                else:
-                    landcoverYear = datetime.datetime(int(binding['fixLandcoverYear']), 1, 1)
+                landcoverYear = datetime.datetime(int(binding['fixLandcoverYear']), 1, 1)
 
-                i = 0
-                for coverType in self.var.coverTypes:
+            i = 0
+            for coverType in self.var.coverTypes:
 
-                    self.var.fracVegCover[i] = readnetcdf2('fractionLandcover', landcoverYear, useDaily="yearly",  value= 'frac'+coverType)
-                    i += 1
+                self.var.fracVegCover[i] = readnetcdf2('fractionLandcover', landcoverYear, useDaily="yearly",  value= 'frac'+coverType)
+                i += 1
 
-                if 'static_irrigation_map' in option:
-                    if checkOption('static_irrigation_map'):
-                        self.var.fracVegCover[3] = loadmap('irrNonPaddy_fracVegCover')
+            if 'static_irrigation_map' in option:
+                if checkOption('static_irrigation_map'):
+                    self.var.fracVegCover[3] = loadmap('irrNonPaddy_fracVegCover')
 
 
             # correction of grassland if sum is not 1.0
