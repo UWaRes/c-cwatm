@@ -22,7 +22,7 @@ class readmeteo(object):
 
     =====================================  ======================================================================  =====
     Variable [self.var]                    Description                                                             Unit 
-    =====================================  ======================================================================  =====
+    =====================================  ======================================================================  =====   
     conv_evap                              conversion factor for evaporation                                       --   
     conv_runoff                            conversion factor for runoff                                            --
     conv_groundw                           conversion factor for groundwater recharge                              --
@@ -108,6 +108,14 @@ class readmeteo(object):
             # Read landsurface maps
             meteomaps = [self.var.QMaps, self.var.GWMaps, self.var.SMMaps, self.var.OWEMaps] #Peter Greve Test
             multinetdf(meteomaps)
+        elif binding['coupl_flag']=='oasis_coupl':  
+            # check if oasis has been initialized
+            # oasisvar_id should contain at least the 4 forcing variables
+            if len(self.var.oasisvar_id) < 4:
+                # TODO: raise error
+                print('Not all 4 required forcing variables are exchanged via OASIS.')
+            else:
+                print('Forcing data will be received using OASIS.')
         
         if self.var.includeGlaciers:
             self.var.glaciermeltMaps = 'MeltGlacierMaps'
@@ -172,7 +180,7 @@ class readmeteo(object):
             
             # read open water evaporation
             self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.con_e
+            self.var.EWRef = self.var.EWRef * self.var.conv_evap
             
 
         # Apply bias correction if enabled
@@ -194,7 +202,7 @@ class readmeteo(object):
                     if not self.var.includeOnlyGlaciersMelt:
                         number = number + 1
 
-                self.var.meteo = np.zeros([number, 1 + dateVar["intEnd"] - dateVar["intStart"], len(self.var.Precipitation)])
+                self.var.meteo = np.zeros([number, 1 + dateVar["intEnd"] - dateVar["intStart"], len(self.var.runoff)])
 
             no = dateVar['curr'] -1
             self.var.meteo[0,no] = self.var.runoff

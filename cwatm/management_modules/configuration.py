@@ -23,33 +23,65 @@ import difflib  # to check the closest word in settingsfile, if an error occurs
 
 class ExtParser(configparser.ConfigParser):
     """
-    addition to the parser to replace placeholders
+    Extended configuration parser that supports placeholder substitution across sections.
 
-    Example:
+    This class extends Python's built-in `ConfigParser` to allow dynamic referencing of values
+    from other sections or within the same section using placeholder syntax.
+
+    Supported placeholder formats:
+    - `$(Section:Option)` — references an option from another section.
+    - `$(Option)` — references an option from the same section.
+
+    Example
+    --------
+        [FILE_PATHS]
         PathRoot = C:/work
+
+        [INPUT]
         MaskMap = $(FILE_PATHS:PathRoot)/data/areamaps/area.tif
 
+    Attributes
+    ----------
+    cur_depth (int) : Tracks the current depth of recursive interpolation to prevent infinite loops.
+
+    as/copilot    
     """
 
     #implementing extended interpolation
     def __init__(self, *args, **kwargs):
+        """
+        Initializes the extended parser and sets the interpolation depth counter.
+        """
         self.cur_depth = 0
         configparser.ConfigParser.__init__(self, *args, **kwargs)
 
     def get(self, section, option, raw=False, vars=None, **kwargs):
         """
-        def get(self, section, option, raw=False, vars=None
-        placeholder replacement
+        Retrieves the value of an option from a given section of the settingsfile, with support for 
+        placeholder substitution.
 
-        :param section: section part of the settings file
-        :param option: option part of the settings file
-        :param raw:
-        :param vars:
-        :return:
+        Parameters
+        ----------
+        section (str) : The section in the settings file.
+        option (str) : The option (key) within the section.
+        Optional:
+        raw (bool) : If True, disables interpolation and returns the raw value. Default is False.
+        vars (dict) : Additional variables for interpolation.
+
+        Returns
+        -------
+        str : The fully resolved value of the configuration option.
+
+        Raises
+        ------
+        CWATMError
+            If the requested option is not found and no close match is available.
+        configparser.InterpolationDepthError
+            If the maximum interpolation depth is exceeded due to recursive references.
+
+        as/copilot
         """
 
-        #h1 = sys.tracebacklimit
-        #sys.tracebacklimit = 0  # no long error message
         try:
            r_opt = configparser.ConfigParser.get(self, section, option, raw=True, vars=vars)
         except:
@@ -59,7 +91,6 @@ class ExtParser(configparser.ConfigParser):
              msg = "Error 116: Closest key to the required one is: \"" + closest[0] + "\""
              raise CWATMError(msg)
 
-        #sys.tracebacklimit = h1   # set error message back to default
         if raw:
             return r_opt
 
@@ -102,10 +133,35 @@ class ExtParser(configparser.ConfigParser):
 
 def parse_configuration(settingsFileName):
     """
-    Parse settings file
+    Parses the settings file and extracts simulation parameters, options, and output settings.
 
-    :param settingsFileName: name of the settings file
-    :return: parameters in list: binding, options in list: option
+    This function reads a structured settings file using an extended parser (`ExtParser`) and organizes its contents
+    into several global dictionaries and lists.
+
+    Parameters
+    ----------
+    settingsFileName (str) : Path to the settings file to be parsed.
+
+    Returns
+    -------
+    None : This function modifies global variables in place and does not return a value.
+        - binding: maps configuration keys to their values for simulation parameters.
+        - option: stores boolean or integer flags from the OPTIONS section.
+        - outMap and outTss: store output map and time series settings.
+        - outDir: stores output directory paths.
+        - outsection: tracks sections that contain output definitions.
+        - outputDir: stores the main output directory path.
+
+    Raises
+    ------
+    CWATMFileError
+        - If the specified settings file does not exist or cannot be found.
+
+    Used in
+    -------
+        - run_cwatm.py (CWATMexe, CWATMexe2)
+        
+    as/copilot
     """
 
     def splitout(varin, check):

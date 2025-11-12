@@ -53,6 +53,11 @@ class CWATModel_dyn(DynamicModel):
         self.readmeteo_module.dynamic()
         timemeasure("Read meteo")  # 1. timing after read input maps
 
+        # as: dynamic oasis coupling    
+        # TODO: at which position?    
+        if binding['coupl_flag']=='oasis_coupl':
+            self.pyoasis_cpl_module.dynamic()  
+
         if Flags['calib']:
             self.output_module.dynamic()
             return
@@ -76,7 +81,6 @@ class CWATModel_dyn(DynamicModel):
         # ***** Groundwater ****************
         self.groundwater_module.dynamic()
         timemeasure("Groundwater")  # 2. timing
-
         # ***** Small Lakes and Reservoirs****************
         self.lakes_res_small_module.dynamic()
         timemeasure("Small lakes")  # 3. timing

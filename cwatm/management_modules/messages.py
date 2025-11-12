@@ -33,7 +33,8 @@ class CWATMError(Warning):
         try:
             errornumber = int(msg[6:9])
         except:
-            errornumber = 100
+            errornumber = 100     
+        
         sys.exit(errornumber)
 
 
@@ -140,4 +141,13 @@ class CWATMRunInfo(Warning):
         self._msg = header + msg
     def __str__(self):
         return self._msg
+
+
+class InvalidModelflagError(Exception):
+    """Raised when a flag has an invalid value."""
+    def __init__(self, flag_name, invalid_value):
+        message = invalid_value + " is not a valid model name. Please use 'remo'.\n"
+        super().__init__(message)
+        self.flag_name = flag_name
+        self.invalid_value = invalid_value
 

@@ -23,7 +23,6 @@ from cwatm.hydrological_modules.lakes_reservoirs import lakes_reservoirs
 
 from cwatm.management_modules.output import *
 from cwatm.management_modules.data_handling import *
-from cwatm.management_modules.coupling import *
 import os, glob
 
 
@@ -99,6 +98,11 @@ class CWATModel_ini(DynamicModel):
         self.routing_kinematic_module = routing_kinematic(self)
         self.lakes_reservoirs_module = lakes_reservoirs(self)
 
+        # as: OASIS3-MCT coupler
+        if binding['coupl_flag']=='oasis_coupl':
+            from cwatm.management_modules.pyoasis_cpl import pyoasis_cpl
+            self.pyoasis_cpl_module = pyoasis_cpl(self)
+
         # ----------------------------------------
         # reading of the metainformation of variables to put into output netcdfs
         metaNetCDF()
@@ -111,6 +115,11 @@ class CWATModel_ini(DynamicModel):
         self.misc_module.initial()
         self.init_module.initial()
 
+        # as: initialize oasis coupling        
+        # initialize oasis first, then check in readmeteo
+        if binding['coupl_flag']=='oasis_coupl': 
+            self.pyoasis_cpl_module.initial()
+        
         self.readmeteo_module.initial()
         self.inflow_module.initial()
         self.groundwater_module.initial()
@@ -125,5 +134,7 @@ class CWATModel_ini(DynamicModel):
         self.waterdemand_module.initial()
         self.output_module.initial()
         self.environflow_module.initial()
+
+
 
 
