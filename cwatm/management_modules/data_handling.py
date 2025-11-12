@@ -239,15 +239,6 @@ def loadsetclone(self,name):
        area = np.sum(loadmap('CellArea')) * 1e-6
        print("Number of cells in catchment: %6i = %7.0f km2" % (np.sum(mask2D), area))
 
-    # if the final results map should be cover up with some mask:
-    if "coverresult" in binding:
-        coverresult[0] = returnBool('coverresult')
-        if coverresult[0]:
-            cover = loadmap('covermap', compress=False, cut = False)
-            cover[cover > 1] = False
-            cover[cover == 1] = True
-            coverresult[1] = cover
-
     return mapC
 
 
@@ -1503,11 +1494,7 @@ def writenetcdf(netfile,prename,addname,varunits,inputmap, timeStamp, posCnt, fl
     mapnp[~maskinfo['maskflat']] = inputmap[:]
     mapnp = mapnp.reshape(maskinfo['shape'])
 
-    if coverresult[0]:
-        mapnp = mapnp.reshape(maskinfo['shape']).data
-        mapnp = np.where(coverresult[1], mapnp, np.nan)
-    else:
-        mapnp = mapnp.reshape(maskinfo['shape'])
+    mapnp = mapnp.reshape(maskinfo['shape'])
 
     if flagTime:
         nf1.variables[varname][posCnt -1, :, :] = mapnp

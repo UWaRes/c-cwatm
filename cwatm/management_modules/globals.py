@@ -162,9 +162,6 @@ timeMes=[]
 timeMesString = []  # name of the time measure - filled in dynamic
 timeMesSum = []    # time measure of hydrological modules
 
-
-global coverresult
-coverresult = [False,0]
 # -------------------------
 global platform1
 
