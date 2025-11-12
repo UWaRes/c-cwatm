@@ -91,12 +91,6 @@ class readmeteo(object):
             cutmapFine[0], cutmapFine[1], cutmapFine[2], cutmapFine[3], cutmapVfine[0], cutmapVfine[1], cutmapVfine[2], cutmapVfine[3] = mapattrNetCDFMeteo(namemeteo)
 
         # -------------------------------------------------------------------
-        self.var.includeGlaciers = False
-        if 'includeGlaciers' in option:
-            self.var.includeGlaciers = checkOption('includeGlaciers')
-            self.var.includeOnlyGlaciersMelt = False
-            if 'includeOnlyGlaciersMelt' in binding:
-                self.var.includeOnlyGlaciersMelt = returnBool('includeOnlyGlaciersMelt')
 
         if binding['coupl_flag']=='no_coupl':
             # read all forcing data at once
@@ -116,11 +110,6 @@ class readmeteo(object):
                 print('Not all 4 required forcing variables are exchanged via OASIS.')
             else:
                 print('Forcing data will be received using OASIS.')
-        
-        if self.var.includeGlaciers:
-            self.var.glaciermeltMaps = 'MeltGlacierMaps'
-            if not self.var.includeOnlyGlaciersMelt:
-                self.var.glacierrainMaps = 'PrecGlacierMaps'
 
         # use radiation term in snow melt
         self.var.snowmelt_radiation = False
@@ -156,11 +145,6 @@ class readmeteo(object):
             self.var.sum_gwRecharge = self.var.meteo[1,no]
             self.var.rootzoneSM = self.var.meteo[2,no]
             self.var.EWRef = self.var.meteo[3,no]
-            j = 3
-            if self.var.includeGlaciers:
-                self.var.GlacierMelt = self.var.meteo[j+1, no]
-                if not self.var.includeOnlyGlaciersMelt:
-                    self.var.GlacierRain = self.var.meteo[j+2, no]
             return
 
 
@@ -197,10 +181,6 @@ class readmeteo(object):
                 number = 4
                 if self.var.snowmelt_radiation:
                     number = number + 2
-                if self.var.includeGlaciers:
-                    number = number + 1
-                    if not self.var.includeOnlyGlaciersMelt:
-                        number = number + 1
 
                 self.var.meteo = np.zeros([number, 1 + dateVar["intEnd"] - dateVar["intStart"], len(self.var.runoff)])
 
@@ -209,11 +189,5 @@ class readmeteo(object):
             self.var.meteo[1,no] = self.var.sum_gwRecharge
             self.var.meteo[2,no] = self.var.rootzoneSM
             self.var.meteo[3,no] = self.var.EWRef
-            j =3
 
-            if self.var.includeGlaciers:
-                self.var.meteo[j+1, no] = self.var.GlacierMelt
-                if not self.var.includeOnlyGlaciersMelt:
-                    self.var.meteo[j+2, no] = self.var.GlacierRain
-            ii =1
 
