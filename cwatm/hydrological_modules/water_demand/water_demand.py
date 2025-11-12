@@ -522,13 +522,10 @@ class water_demand:
                                                         self.var.reservoir_command_areas), self.var.cellArea)
 
             # Water abstracted from reservoirs leaks along canals related to conveyance efficiency.
-            # Canals are a map where canal cells have the number of the command area they are associated with
+            # Canals are a map (removed) where canal cells have the number of the command area they are associated with
             # Command areas without canals experience leakage equally throughout the command area
 
-            if 'canals' in binding:
-                self.var.canals = loadmap('canals').astype(int)
-            else:
-                self.var.canals = globals.inZero.copy().astype(int)
+            self.var.canals = globals.inZero.copy().astype(int)
 
             # canals for reservoir conveyance and loss
             self.var.canals = np.where(self.var.canals != self.var.reservoir_command_areas, 0, self.var.canals)
@@ -1349,20 +1346,6 @@ class water_demand:
         # Determine how much of the demand was met
         metRemainSegment = np.where( demand_Segment > 0,
             divideValues(act_bigLakeResAbst_alloc * self.var.Water_conveyance_efficiency, demand_Segment), 0 )
-
-        # Calculate leakage losses (only for waste water??)
-        #self.var.leakageC_daily = resStorageTotal_allocC * ResAbstractFactorC * (
-        #    1 - np.compress(self.var.compress_LR, self.var.Water_conveyance_efficiency) )
-        #self.var.leakage = globals.inZero.copy()
-        #np.put(self.var.leakage, self.var.decompress_LR, self.var.leakageC_daily + self.var.leakage_wwtC_daily)
-
-        #divleak_canal = divideValues( self.var.leakageC_daily + self.var.leakage_wwtC_daily,
-        #    self.var.canalsAreaC )
-        #self.var.leakageCanalsC_M = np.where(self.var.canalsAreaC > 0, divleak_canal, 0)
-
-        #self.var.leakageCanals_M = globals.inZero.copy()
-        #np.put(self.var.leakageCanals_M, self.var.decompress_LR, self.var.leakageCanalsC_M)
-        #self.var.leakageCanals_M = npareamaximum(self.var.leakageCanals_M, self.var.canals)
 
         # Update actual abstraction values
         self.var.act_bigLakeResAbst += remainNeed2 * metRemainSegment
