@@ -195,17 +195,6 @@ class routing_kinematic(object):
         self.var.UpArea = upstreamArea(self.var.dirDown, dirshort, self.var.cellArea)
 
 
-        basin = False
-        if 'savebasinmap' in option:
-            basin = checkOption('savebasinmap')
-        if basin:
-            file = os.path.join(outDir[list(outDir)[-1]],"basin.tif")
-            report(self.var.catchment,file)
-            print("\nBasin area map in: ", file)
-            file = os.path.join(outDir[list(outDir)[-1]],"ups.tif")
-            report(self.var.UpArea,file)
-            print("Upstream area map in: ", file)
-
         #---------------------------------------------------------------
         #Calibration
         # mannings roughness factor 0.1 - 10.0
