@@ -153,19 +153,38 @@ class readmeteo(object):
             # read runoff
             self.var.runoff, MaskMapBoundary = readmeteodata(self.var.QMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
             self.var.runoff = np.maximum(0., self.var.runoff * self.var.conv_runoff)
-    
-            # read ground water recharge
-            self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
-            self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge * self.var.conv_groundw)
             
             # read rootzone soil moisture
             self.var.rootzoneSM, MaskMapBoundary = readmeteodata(self.var.SMMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
             self.var.rootzoneSM = np.maximum(0., self.var.rootzoneSM * self.var.conv_soilw)
-            
-            # read open water evaporation
-            self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-            self.var.EWRef = self.var.EWRef * self.var.conv_evap
-            
+
+            if returnBool('use_GWrecharge'):
+                # read ground water recharge
+                self.var.sum_gwRecharge, MaskMapBoundary = readmeteodata(self.var.GWMaps, dateVar['currDate'], addZeros=True, mapsscale = self.var.meteomapsscale, buffering= self.var.buffer)
+                self.var.sum_gwRecharge = np.maximum(0., self.var.sum_gwRecharge * self.var.conv_groundw)
+            else:
+                self.var.GWscale = loadmap('GWscale_factor')
+                self.var.sum_gwRecharge = self.var.runoff*self.var.GWscale
+
+            if binding['OWE_meth']=='OWE':
+                # read open water evaporation
+                self.var.EWRef, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = self.var.EWRef * self.var.conv_evap
+
+            if binding['OWE_meth']=='T':
+                # read temperature
+                self.var.Toffset = loadmap('Temp_offset')
+                self.var.Tin, MaskMapBoundary = readmeteodata(self.var.TMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = 13.97 * 0.0495 * exp(0.062 * self.var.Tin+self.var.Toffset )/1000 # in m/day 
+                # based on Hamon (1963) and pyet Python package
+
+            if binding['OWE_meth']=='Rnet':
+                # read net radiation
+                self.var.Rnetfact = loadmap('Rnet_conversion')
+                self.var.Rnet, MaskMapBoundary = readmeteodata(self.var.RnMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = ((0.8 * self.var.Rnet*self.var.Rnetfact)/28.94)/1000 # based on Milly and Dunne, 2016
+
+        
 
         # Apply bias correction if enabled
         if checkOption('bias_correct_runoff'):
