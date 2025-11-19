@@ -95,13 +95,24 @@ class readmeteo(object):
         if binding['coupl_flag']=='no_coupl':
             # read all forcing data at once
             self.var.QMaps = 'RunoffMaps' 
-            self.var.GWMaps = 'GWMaps'
-            self.var.OWEMaps = 'OWEMaps'
             self.var.SMMaps = 'SMMaps'
+            if returnBool('use_GWrecharge'):
+                self.var.GWMaps = 'GWMaps'
+            if binding['OWE_meth']=='OWE':  
+                self.var.OWEMaps = 'OWEMaps'
+            if binding['OWE_meth']=='T':  
+                self.var.OWEMaps = 'TMaps'
+            if binding['OWE_meth']=='Rnet':  
+                self.var.OWEnMaps = 'RnMaps'
             
             # Read landsurface maps
-            meteomaps = [self.var.QMaps, self.var.GWMaps, self.var.SMMaps, self.var.OWEMaps] #Peter Greve Test
+            if returnBool('use_GWrecharge'):
+                meteomaps = [self.var.QMaps, self.var.GWMaps, self.var.SMMaps, self.var.OWEMaps]
+            else:
+                meteomaps = [self.var.QMaps, self.var.SMMaps, self.var.OWEMaps]
+                
             multinetdf(meteomaps)
+            
         elif binding['coupl_flag']=='oasis_coupl':  
             # check if oasis has been initialized
             # oasisvar_id should contain at least the 4 forcing variables
@@ -174,14 +185,14 @@ class readmeteo(object):
             if binding['OWE_meth']=='T':
                 # read temperature
                 self.var.Toffset = loadmap('Temp_offset')
-                self.var.Tin, MaskMapBoundary = readmeteodata(self.var.TMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
-                self.var.EWRef = 13.97 * 0.0495 * exp(0.062 * (self.var.Tin+self.var.Toffset) )/1000 # in m/day 
+                self.var.Tin, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.EWRef = 13.97 * 0.0495 * np.exp(0.062 * (self.var.Tin+self.var.Toffset) )/1000 # in m/day 
                 # based on Hamon (1963) and pyet Python package
 
             if binding['OWE_meth']=='Rnet':
                 # read net radiation
                 self.var.Rnetfact = loadmap('Rnet_conversion')
-                self.var.Rnet, MaskMapBoundary = readmeteodata(self.var.RnMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
+                self.var.Rnet, MaskMapBoundary = readmeteodata(self.var.OWEMaps, dateVar['currDate'], addZeros=True, mapsscale = True)
                 self.var.EWRef = ((0.8 * self.var.Rnet*self.var.Rnetfact)/28.94)/1000 # based on Milly and Dunne, 2016
 
         
