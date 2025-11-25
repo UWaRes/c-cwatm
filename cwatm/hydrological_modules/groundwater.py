@@ -23,7 +23,6 @@ class groundwater(object):
     =====================================  ======================================================================  =====
     load_initial                           Settings initLoad holds initial conditions for variables                input
     storGroundwater                        Groundwater storage (non-fossil). This is primarily used when not usin  m    
-    specificYield                          groundwater reservoir parameters used to comp                           m    
     recessionCoeff                         groundwater storage times this coefficient gives baseflow               frac 
     readAvlStorGroundwater                 same as storGroundwater but equal to 0 when inferior to a treshold      m    
     prestorGroundwater                     storGroundwater at the beginning of each step                           m    
@@ -53,13 +52,9 @@ class groundwater(object):
         self.var.recessionCoeff = 1 / self.var.recessionCoeff * loadmap('recessionCoeff_factor')
         self.var.recessionCoeff = 1 / self.var.recessionCoeff
 
-        self.var.specificYield = loadmap('specificYield')
-
-        # init calculation recession coefficient, speciefic yield, ksatAquifer
+        # init calculation recession coefficient, speciefic yield
         self.var.recessionCoeff = np.maximum(5.e-4, self.var.recessionCoeff)
         self.var.recessionCoeff = np.minimum(1.000, self.var.recessionCoeff)
-        self.var.specificYield = np.maximum(0.010, self.var.specificYield)
-        self.var.specificYield = np.minimum(1.000, self.var.specificYield)
 
         # initial conditions
         self.var.storGroundwater = self.var.load_initial('storGroundwater')

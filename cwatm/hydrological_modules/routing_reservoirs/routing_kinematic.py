@@ -337,14 +337,7 @@ class routing_kinematic(object):
         # - this infiltration will be handed to groundwater in the next time step
 
         # used self.var.fracVegCover[5] instead of self.var.dynamicFracWat
-        """
-        self.var.riverbedExchange = np.maximum(0.0,  np.minimum(self.var.channelStorage, np.where(self.var.baseflow > 0.0, \
-                                np.where(self.var.nonFossilGroundwaterAbs > self.var.baseflow, \
-                                self.var.kSatAquifer * self.var.fracVegCover[5] * self.var.cellArea, \
-                                0.0), 0.0)))
-        # to avoid flip flop
-        self.var.riverbedExchange = np.minimum(self.var.riverbedExchange, 0.95 * self.var.channelStorage)
-        """
+
 
         if checkOption('includeWaterBodies'):
             # add reservoirs depending on year
