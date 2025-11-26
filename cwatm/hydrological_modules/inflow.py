@@ -77,7 +77,7 @@ class inflow(object):
             """
 
             newdtype = sum((a.dtype.descr for a in arrays), [])
-            newrecarray = np.empty(len(arrays[0]), dtype=newdtype)
+            newrecarray = np.zeros(len(arrays[0]), dtype=newdtype)
             for a in arrays:
                 for name in a.dtype.names:
                     newrecarray[name] = a[name]

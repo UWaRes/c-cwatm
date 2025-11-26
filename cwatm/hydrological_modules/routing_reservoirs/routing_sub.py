@@ -300,7 +300,7 @@ def lddshort(lddnp,lddOrder):
     xi=lddnp.shape[1]
 
     # direction downstream naming the order of the cell
-    dir = np.array(np.empty(maskinfo['shape']), dtype=np.int64)
+    dir = np.array(np.zeros(maskinfo['shape']), dtype=np.int64)
     dir.fill(-1)
 
     #lib2.repairLdd1(lddnp, yi,xi)
@@ -329,7 +329,7 @@ def lddrepair(lddnp,lddOrder):
     #print "========= repair 1"
 
     # direction downstream naming the order of the cell
-    dir = np.array(np.empty(maskinfo['shape']), dtype=np.int64)
+    dir = np.array(np.zeros(maskinfo['shape']), dtype=np.int64)
     dir.fill(-1)
 
     lib2.repairLdd1(lddnp, yi,xi)

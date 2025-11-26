@@ -86,7 +86,7 @@ class miscInitial(object):
             # - All grid cells have the same size
 
             # Area of pixel [m2]
-            self.var.cellArea=np.empty(maskinfo['mapC'])
+            self.var.cellArea=np.zeros(maskinfo['mapC'])
             self.var.cellArea.fill(maskmapAttr['cell'] ** 2)
             ii =1
 

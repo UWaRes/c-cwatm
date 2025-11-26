@@ -104,7 +104,7 @@ class environflow(object):
             monthshape = montharray.shape[0]
 
             # create empy array for all discharge data
-            disall = np.empty(shape=[monthshape, maskinfo['mapC'][0]])
+            disall = np.zeros(shape=[monthshape, maskinfo['mapC'][0]])
 
             # run through discharge netcdfs
 
@@ -136,8 +136,8 @@ class environflow(object):
             self.var.MAF = np.average(disall, axis=0)
             self.var.Q90 = np.percentile(disall, 10, axis=0)
 
-            self.var.MMF = np.empty(shape=[12, maskinfo['mapC'][0]])
-            self.var.MQ90 = np.empty(shape=[12, maskinfo['mapC'][0]])
+            self.var.MMF = np.zeros(shape=[12, maskinfo['mapC'][0]])
+            self.var.MQ90 = np.zeros(shape=[12, maskinfo['mapC'][0]])
             for i in range(12):
                 dispermonth = disall[montharray == (i + 1), :]
                 self.var.MMF[i] = np.average(dispermonth, axis=0)
@@ -146,7 +146,7 @@ class environflow(object):
             ## calculating EF requirement with Variable Monthly Flow p. 5049
             ## A.V.Pastor et al.(2014): Accounting for environmental flow requirements in global water assessments, Hydrol Earth Syst Sci, 18, p5041-5059
 
-            self.var.EF_VMF = np.empty(shape=[12, maskinfo['mapC'][0]])
+            self.var.EF_VMF = np.zeros(shape=[12, maskinfo['mapC'][0]])
             for i in range(12):
                 self.var.EF_VMF[i] = np.where(self.var.MMF[i] <= (0.4 * self.var.MAF), 0.6 * self.var.MMF[i] ,np.where(self.var.MMF[i] > (0.8 * self.var.MAF), 0.3 * self.var.MMF[i] ,0.45 * self.var.MMF[i]))
             ii = 1
