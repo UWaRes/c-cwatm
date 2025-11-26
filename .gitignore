@@ -14,4 +14,8 @@ fort*
 */*/.ipynb_checkpoints/*
 */*/*/.ipynb_checkpoints/*
 */*/*/*/.ipynb_checkpoints/*
+SLURM_to_run_ccwatm_init.sh
+settings_CCWatM_5min_2025_11.ini
+settings_ccwatm_init_6123510.ini
+settings_ccwatm_init_6227510.ini
 
