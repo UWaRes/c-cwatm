@@ -155,7 +155,10 @@ class waterdemand_irrigation:
         #  ========================================
         # depends on relSat and arnoBeta
         
-        satAreaFrac = np.maximum(1 - (1 - relSat),0) ** self.var.arnoBeta
+        # Bug fix from CWatM (27-03-2025)
+        #satAreaFrac = np.maximum(1 - (1 - relSat),0) ** self.var.arnoBeta
+        satAreaFrac = 1 - np.maximum((1 - relSat),0) ** self.var.arnoBeta
+
         satAreaFrac = np.maximum(np.minimum(satAreaFrac, 1.0), 0.0)
         store = soilWaterStorageCap / (self.var.arnoBeta + 1)
         potBeta = (self.var.arnoBeta + 1) / self.var.arnoBeta
