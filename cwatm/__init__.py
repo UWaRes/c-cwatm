@@ -32,8 +32,8 @@ GNU General Public License for more details
 
 __author__ = "Peter Greve, Peter Burek"
 __email__ = 'peter.greve@hereon.de'
-__version__ = "0.1"
-__date__ = "17/03/2025"
-__copyright__ = "Copyright 2025, Helmholtz-Zentrum Hereon"
+__version__ = "1.0"
+__date__ = "19/03/2026"
+__copyright__ = "Copyright 2026, Helmholtz-Zentrum Hereon"
 __maintainer__ = "UWaRes research group"
-__status__ = "Development"
+__status__ = "First Public release"
