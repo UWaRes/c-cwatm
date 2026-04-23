@@ -23,4 +23,4 @@ C-CWatM is developed and maintained by the [UWaRes](https://ms.hereon.de/uwares/
 
 ## Input Data
 
-Please check the CWatM repository [CWatM-Earth-30min](https://github.com/iiasa/CWatM-Earth-30min), which contains input data for CWatM and C-CWatM at 30 arcminutes and further links to the 5 arcminutes resolution input data. A dedicated repository for C-CWatM will follow. Please contact the UWaRes team in between.
+Please check the CWatM repository [CWatM-Earth-30min](https://github.com/iiasa/CWatM-Earth-30min), which contains input data for CWatM and C-CWatM at 30 arcminutes and further links to the 5 arcminutes resolution input data. C-CWatM specific input maps (soil water storage capacity, field capacity, wilting point) are provided in the folder input_soil.
